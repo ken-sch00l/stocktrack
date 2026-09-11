@@ -20,6 +20,14 @@
                 <i class="bi bi-journal-text me-2"></i>Logbook
             </a>
         </li>
+        <?php if (hasAnyRole(['admin', 'treasurer'])): ?>
+        <?php $unread_notifications = $conn->query("SELECT COUNT(*) AS unread_count FROM notifications WHERE recipient_user_id = " . (int)$_SESSION['user_id'] . " AND is_read = 0")->fetch_assoc()['unread_count']; ?>
+        <li class="nav-item">
+            <a href="/stocktrack/modules/notifications/index.php" class="nav-link text-white">
+                <i class="bi bi-bell me-2"></i>Notifications <?php if ($unread_notifications): ?><span class="badge bg-warning text-dark"><?php echo (int)$unread_notifications; ?></span><?php endif; ?>
+            </a>
+        </li>
+        <?php endif; ?>
         <li class="nav-item">
             <a href="/stocktrack/modules/reports/index.php" class="nav-link text-white">
                 <i class="bi bi-file-earmark-text me-2"></i>Reports

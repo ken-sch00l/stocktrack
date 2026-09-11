@@ -54,7 +54,8 @@ function requirePermission($permission) {
         'delete' => ['admin'],
         'manage_users' => ['admin'],
         'manage_categories' => ['admin'],
-        'view_audit' => ['admin']
+        'view_audit' => ['admin'],
+        'view_notifications' => ['admin', 'treasurer']
     ];
 
     if (!isset($permissions[$permission]) || !hasAnyRole($permissions[$permission])) {
