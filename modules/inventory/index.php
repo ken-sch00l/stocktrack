@@ -45,8 +45,9 @@ $offset = ($page - 1) * $per_page;
 
 $query_params = $_GET;
 unset($query_params['page']);
-$pagination_query = http_build_query($query_params);
-$pagination_suffix = $pagination_query ? '&' . $pagination_query : '';
+$pagination_url = function ($target_page) use ($query_params) {
+    return '?' . htmlspecialchars(http_build_query(array_merge($query_params, ['page' => $target_page])), ENT_QUOTES, 'UTF-8');
+};
 
 $sql = "SELECT i.*, c.category_name FROM items i LEFT JOIN categories c ON i.category_id = c.category_id $where ORDER BY i.item_name ASC LIMIT ? OFFSET ?";
 $stmt = $conn->prepare($sql);
@@ -177,15 +178,15 @@ $categories = $conn->query("SELECT * FROM categories ORDER BY category_name ASC"
         <nav aria-label="Inventory pages">
             <ul class="pagination pagination-sm mb-0">
                 <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
-                    <a class="page-link" href="?page=<?php echo max(1, $page - 1) . $pagination_suffix; ?>" aria-label="Previous">&laquo;</a>
+                    <a class="page-link" href="<?php echo $pagination_url(max(1, $page - 1)); ?>" aria-label="Previous">&laquo;</a>
                 </li>
                 <?php for ($page_number = 1; $page_number <= $total_pages; $page_number++): ?>
                     <li class="page-item <?php echo $page_number === $page ? 'active' : ''; ?>">
-                        <a class="page-link" href="?page=<?php echo $page_number . $pagination_suffix; ?>"><?php echo $page_number; ?></a>
+                        <a class="page-link" href="<?php echo $pagination_url($page_number); ?>"><?php echo $page_number; ?></a>
                     </li>
                 <?php endfor; ?>
                 <li class="page-item <?php echo $page >= $total_pages ? 'disabled' : ''; ?>">
-                    <a class="page-link" href="?page=<?php echo min($total_pages, $page + 1) . $pagination_suffix; ?>" aria-label="Next">&raquo;</a>
+                    <a class="page-link" href="<?php echo $pagination_url(min($total_pages, $page + 1)); ?>" aria-label="Next">&raquo;</a>
                 </li>
             </ul>
         </nav>

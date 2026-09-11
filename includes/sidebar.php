@@ -47,6 +47,11 @@
                 <i class="bi bi-people me-2"></i>Users
             </a>
         </li>
+        <li class="nav-item">
+            <a href="/stocktrack/modules/audit/index.php" class="nav-link text-white">
+                <i class="bi bi-shield-check me-2"></i>Activity Log
+            </a>
+        </li>
         <?php endif; ?>
     </ul>
 </div>

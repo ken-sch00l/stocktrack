@@ -53,7 +53,8 @@ function requirePermission($permission) {
         'edit' => ['admin'],
         'delete' => ['admin'],
         'manage_users' => ['admin'],
-        'manage_categories' => ['admin']
+        'manage_categories' => ['admin'],
+        'view_audit' => ['admin']
     ];
 
     if (!isset($permissions[$permission]) || !hasAnyRole($permissions[$permission])) {
@@ -88,23 +89,28 @@ function login_identifier() {
     return substr(($_SERVER['REMOTE_ADDR'] ?? 'unknown') . '|' . ($_POST['username'] ?? ''), 0, 190);
 }
 
-function isLoginRateLimited($identifier) {
+function getLoginBlockSeconds($identifier) {
     global $conn;
 
     if (!isset($conn)) {
-        return false;
+        return 0;
     }
 
-    $stmt = $conn->prepare("SELECT blocked_until FROM login_attempts WHERE identifier = ? AND blocked_until > NOW()");
+    $stmt = $conn->prepare("SELECT GREATEST(0, TIMESTAMPDIFF(SECOND, NOW(), blocked_until)) AS seconds_remaining FROM login_attempts WHERE identifier = ?");
     $stmt->bind_param("s", $identifier);
     $stmt->execute();
-    return (bool)$stmt->get_result()->fetch_assoc();
+    $row = $stmt->get_result()->fetch_assoc();
+    return $row ? (int)$row['seconds_remaining'] : 0;
+}
+
+function isLoginRateLimited($identifier) {
+    return getLoginBlockSeconds($identifier) > 0;
 }
 
 function recordLoginFailure($identifier) {
     global $conn;
 
-    $stmt = $conn->prepare("INSERT INTO login_attempts (identifier, attempts, window_started, blocked_until) VALUES (?, 1, NOW(), NULL) ON DUPLICATE KEY UPDATE attempts = IF(window_started < DATE_SUB(NOW(), INTERVAL 15 MINUTE), 1, attempts + 1), window_started = IF(window_started < DATE_SUB(NOW(), INTERVAL 15 MINUTE), NOW(), window_started), blocked_until = IF(attempts + 1 >= 5, DATE_ADD(NOW(), INTERVAL 15 MINUTE), blocked_until)");
+    $stmt = $conn->prepare("INSERT INTO login_attempts (identifier, attempts, window_started, blocked_until) VALUES (?, 1, NOW(), NULL) ON DUPLICATE KEY UPDATE attempts = IF(window_started < DATE_SUB(NOW(), INTERVAL 1 MINUTE), 1, attempts + 1), window_started = IF(window_started < DATE_SUB(NOW(), INTERVAL 1 MINUTE), NOW(), window_started), blocked_until = IF(attempts >= 5, DATE_ADD(NOW(), INTERVAL 1 MINUTE), blocked_until)");
     $stmt->bind_param("s", $identifier);
     $stmt->execute();
 }

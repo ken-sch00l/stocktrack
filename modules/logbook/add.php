@@ -5,17 +5,32 @@ requirePermission('add');
 require_once '../../includes/db.php';
 
 $error = '';
+$form_item_id = '';
+$form_action = 'Borrowed';
+$form_quantity = 1;
+$form_borrowed_by = '';
+$form_purpose = '';
+$form_date_action = '';
+$form_date_returned = '';
 $items = $conn->query("SELECT item_id, item_name, tracking_number FROM items ORDER BY item_name ASC");
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf_token();
-    $item_id      = (int)$_POST['item_id'];
-    $action       = $_POST['action'];
-    $quantity     = (int)$_POST['quantity'];
-    $borrowed_by  = trim($_POST['borrowed_by']);
-    $purpose      = trim($_POST['purpose']);
-    $date_action  = $_POST['date_action'];
-    $date_returned = $_POST['date_returned'] ?: null;
+    $form_item_id = $_POST['item_id'] ?? '';
+    $form_action = $_POST['action'] ?? 'Borrowed';
+    $form_quantity = $_POST['quantity'] ?? 1;
+    $form_borrowed_by = trim($_POST['borrowed_by'] ?? '');
+    $form_purpose = trim($_POST['purpose'] ?? '');
+    $form_date_action = $_POST['date_action'] ?? '';
+    $form_date_returned = $_POST['date_returned'] ?? '';
+
+    $item_id      = (int)$form_item_id;
+    $action       = $form_action;
+    $quantity     = (int)$form_quantity;
+    $borrowed_by  = $form_borrowed_by;
+    $purpose      = $form_purpose;
+    $date_action  = $form_date_action;
+    $date_returned = $form_date_returned ?: null;
     $recorded_by  = $_SESSION['user_id'];
 
     $allowed_actions = ['Borrowed', 'Used', 'Returned'];
@@ -91,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <select name="item_id" class="form-select" required>
                         <option value="">Select Item</option>
                         <?php while($item = $items->fetch_assoc()): ?>
-                            <option value="<?php echo $item['item_id']; ?>">
+                            <option value="<?php echo $item['item_id']; ?>" <?php echo (string)$form_item_id === (string)$item['item_id'] ? 'selected' : ''; ?>>
                                 <?php echo htmlspecialchars($item['item_name'] . ' (' . $item['tracking_number'] . ')'); ?>
                             </option>
                         <?php endwhile; ?>
@@ -100,30 +115,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="col-md-3">
                     <label class="form-label">Action <span class="text-danger">*</span></label>
                     <select name="action" class="form-select" required>
-                        <option value="Borrowed">Borrowed</option>
-                        <option value="Used">Used</option>
-                        <option value="Returned">Returned</option>
+                        <option value="Borrowed" <?php echo $form_action === 'Borrowed' ? 'selected' : ''; ?>>Borrowed</option>
+                        <option value="Used" <?php echo $form_action === 'Used' ? 'selected' : ''; ?>>Used</option>
+                        <option value="Returned" <?php echo $form_action === 'Returned' ? 'selected' : ''; ?>>Returned</option>
                     </select>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Quantity</label>
-                    <input type="number" name="quantity" class="form-control" value="1" min="1">
+                    <input type="number" name="quantity" class="form-control" value="<?php echo htmlspecialchars((string)$form_quantity, ENT_QUOTES, 'UTF-8'); ?>" min="1">
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Borrowed/Used By <span class="text-danger">*</span></label>
-                    <input type="text" name="borrowed_by" class="form-control" placeholder="Full name" required>
+                    <input type="text" name="borrowed_by" class="form-control" placeholder="Full name" value="<?php echo htmlspecialchars($form_borrowed_by, ENT_QUOTES, 'UTF-8'); ?>" required>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Purpose</label>
-                    <input type="text" name="purpose" class="form-control" placeholder="Reason for borrowing/use">
+                    <input type="text" name="purpose" class="form-control" placeholder="Reason for borrowing/use" value="<?php echo htmlspecialchars($form_purpose, ENT_QUOTES, 'UTF-8'); ?>">
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Date <span class="text-danger">*</span></label>
-                    <input type="date" name="date_action" class="form-control" required>
+                    <input type="date" name="date_action" class="form-control" value="<?php echo htmlspecialchars($form_date_action, ENT_QUOTES, 'UTF-8'); ?>" required>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Date Returned <small class="text-muted">(if applicable)</small></label>
-                    <input type="date" name="date_returned" class="form-control">
+                    <input type="date" name="date_returned" class="form-control" value="<?php echo htmlspecialchars($form_date_returned, ENT_QUOTES, 'UTF-8'); ?>">
                 </div>
                 <div class="col-12">
                     <button type="submit" class="btn btn-primary px-4">

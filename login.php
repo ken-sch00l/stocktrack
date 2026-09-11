@@ -11,6 +11,7 @@ if (isset($_SESSION['user_id'])) {
 }
 
 $error = '';
+$lockout_seconds = 0;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf_token();
@@ -19,7 +20,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $login_identifier = login_identifier();
 
     if (isLoginRateLimited($login_identifier)) {
-        $error = "Too many failed attempts. Please try again later.";
+        $lockout_seconds = getLoginBlockSeconds($login_identifier);
+        $error = "Too many failed attempts.";
     } else {
         $stmt = $conn->prepare("SELECT * FROM users WHERE username = ?");
         $stmt->bind_param("s", $username);
@@ -45,6 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         recordLoginFailure($login_identifier);
         recordAudit('login_failure', 'user', null, 'Invalid credentials');
         $error = "Invalid username or password.";
+        $lockout_seconds = getLoginBlockSeconds($login_identifier);
     }
 }
 ?>
@@ -71,8 +74,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
     <div class="p-4">
         <?php if ($error): ?>
-            <div class="alert alert-danger alert-dismissible">
+            <div class="alert alert-danger alert-dismissible" <?php echo $lockout_seconds > 0 ? 'data-lockout-seconds="' . $lockout_seconds . '"' : ''; ?>>
                 <?php echo htmlspecialchars($error); ?>
+                <?php if ($lockout_seconds > 0): ?>
+                    Try again in <strong id="lockoutCountdown"><?php echo $lockout_seconds; ?></strong> seconds.
+                <?php endif; ?>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         <?php endif; ?>
@@ -92,13 +98,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <input type="password" name="password" class="form-control" placeholder="Enter password" required>
                 </div>
             </div>
-            <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
+            <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold" <?php echo $lockout_seconds > 0 ? 'disabled' : ''; ?>>
                 <i class="bi bi-box-arrow-in-right me-2"></i>Login
             </button>
         </form>
         <p class="text-center text-muted mt-3 small">Barangay Puguis, La Trinidad, Benguet</p>
     </div>
 </div>
+<?php if ($lockout_seconds > 0): ?>
+<script>
+    let remainingSeconds = <?php echo $lockout_seconds; ?>;
+    const countdown = document.getElementById('lockoutCountdown');
+    const loginButton = document.querySelector('button[type="submit"]');
+    const timer = setInterval(function() {
+        remainingSeconds -= 1;
+        if (remainingSeconds <= 0) {
+            clearInterval(timer);
+            window.location.reload();
+            return;
+        }
+        countdown.textContent = remainingSeconds;
+    }, 1000);
+</script>
+<?php endif; ?>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
