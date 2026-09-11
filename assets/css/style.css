@@ -1,0 +1,65 @@
+/* StockTrack - Barangay Puguis */
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #f8f9fa;
+}
+
+.sidebar .nav-link:hover {
+    background-color: rgba(255,255,255,0.1);
+    border-radius: 6px;
+}
+
+.sidebar .nav-link.active {
+    background-color: rgba(255,255,255,0.2);
+    border-radius: 6px;
+}
+
+/* Condition badges */
+.badge-serviceable {
+    background-color: #198754;
+    color: white;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+}
+
+.badge-unserviceable {
+    background-color: #dc3545;
+    color: white;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+}
+
+/* Tables */
+.table th {
+    background-color: #000409;
+    color: white;
+    font-weight: 500;
+}
+
+.table-hover tbody tr:hover {
+    background-color: #e8f0fe;
+}
+
+/* Cards */
+.stat-card {
+    border-radius: 10px;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+/* Forms */
+.form-label {
+    font-weight: 500;
+}
+
+/* Print styles */
+@media print {
+    .sidebar, .navbar, .btn, .no-print {
+        display: none !important;
+    }
+    .content {
+        padding: 0 !important;
+    }
+}
