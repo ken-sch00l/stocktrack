@@ -4,7 +4,7 @@ requireLogin();
 requirePermission('view');
 require_once '../../includes/db.php';
 
-$logs = $conn->query("SELECT l.*, i.item_name, i.tracking_number, u.full_name as recorder FROM logbook l LEFT JOIN items i ON l.item_id = i.item_id LEFT JOIN users u ON l.recorded_by = u.user_id ORDER BY l.date_action DESC");
+$logs = $conn->query("SELECT l.*, COALESCE(i.item_name, 'Deleted item') AS item_name, COALESCE(i.tracking_number, 'N/A') AS tracking_number, u.full_name as recorder FROM logbook l LEFT JOIN items i ON l.item_id = i.item_id LEFT JOIN users u ON l.recorded_by = u.user_id ORDER BY l.date_action DESC");
 ?>
 <?php require_once '../../includes/header.php'; ?>
 <?php require_once '../../includes/sidebar.php'; ?>

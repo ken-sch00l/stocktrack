@@ -3,7 +3,10 @@ require_once 'includes/auth.php';
 require_once 'includes/db.php';
 
 if (isset($_SESSION['user_id'])) {
-    header("Location: /stocktrack/dashboard.php");
+    $destination = !empty($_SESSION['must_change_password'])
+        ? '/stocktrack/change_password.php'
+        : '/stocktrack/dashboard.php';
+    header("Location: {$destination}");
     exit();
 }
 
@@ -21,10 +24,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $user = $result->fetch_assoc();
 
     if ($user && password_verify($password, $user['password'])) {
+        session_regenerate_id(true);
         $_SESSION['user_id']   = $user['user_id'];
         $_SESSION['full_name'] = $user['full_name'];
         $_SESSION['role']      = $user['role'];
-        header("Location: /stocktrack/dashboard.php");
+        $_SESSION['must_change_password'] = (int)$user['must_change_password'];
+        $destination = $_SESSION['must_change_password']
+            ? '/stocktrack/change_password.php'
+            : '/stocktrack/dashboard.php';
+        header("Location: {$destination}");
         exit();
     } else {
         $error = "Invalid username or password.";

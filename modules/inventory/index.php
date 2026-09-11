@@ -30,11 +30,30 @@ if ($condition_filter) {
     $types .= 's';
 }
 
-$sql = "SELECT i.*, c.category_name FROM items i LEFT JOIN categories c ON i.category_id = c.category_id $where ORDER BY i.item_name ASC";
-$stmt = $conn->prepare($sql);
+$per_page = 20;
+$page = max(1, (int)($_GET['page'] ?? 1));
+
+$count_stmt = $conn->prepare("SELECT COUNT(*) AS total_items FROM items i $where");
 if ($params) {
-    $stmt->bind_param($types, ...$params);
+    $count_stmt->bind_param($types, ...$params);
 }
+$count_stmt->execute();
+$total_items = (int)$count_stmt->get_result()->fetch_assoc()['total_items'];
+$total_pages = max(1, (int)ceil($total_items / $per_page));
+$page = min($page, $total_pages);
+$offset = ($page - 1) * $per_page;
+
+$query_params = $_GET;
+unset($query_params['page']);
+$pagination_query = http_build_query($query_params);
+$pagination_suffix = $pagination_query ? '&' . $pagination_query : '';
+
+$sql = "SELECT i.*, c.category_name FROM items i LEFT JOIN categories c ON i.category_id = c.category_id $where ORDER BY i.item_name ASC LIMIT ? OFFSET ?";
+$stmt = $conn->prepare($sql);
+$limit_params = $params;
+$limit_params[] = $per_page;
+$limit_params[] = $offset;
+$stmt->bind_param($types . 'ii', ...$limit_params);
 $stmt->execute();
 $items = $stmt->get_result();
 
@@ -148,6 +167,31 @@ $categories = $conn->query("SELECT * FROM categories ORDER BY category_name ASC"
             </tbody>
         </table>
     </div>
+    <?php if ($total_items > 0): ?>
+    <div class="card-footer bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <small class="text-muted">
+            Showing <?php echo (($page - 1) * $per_page) + 1; ?>-
+            <?php echo min($page * $per_page, $total_items); ?> of <?php echo $total_items; ?> item(s)
+        </small>
+        <?php if ($total_pages > 1): ?>
+        <nav aria-label="Inventory pages">
+            <ul class="pagination pagination-sm mb-0">
+                <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
+                    <a class="page-link" href="?page=<?php echo max(1, $page - 1) . $pagination_suffix; ?>" aria-label="Previous">&laquo;</a>
+                </li>
+                <?php for ($page_number = 1; $page_number <= $total_pages; $page_number++): ?>
+                    <li class="page-item <?php echo $page_number === $page ? 'active' : ''; ?>">
+                        <a class="page-link" href="?page=<?php echo $page_number . $pagination_suffix; ?>"><?php echo $page_number; ?></a>
+                    </li>
+                <?php endfor; ?>
+                <li class="page-item <?php echo $page >= $total_pages ? 'disabled' : ''; ?>">
+                    <a class="page-link" href="?page=<?php echo min($total_pages, $page + 1) . $pagination_suffix; ?>" aria-label="Next">&raquo;</a>
+                </li>
+            </ul>
+        </nav>
+        <?php endif; ?>
+    </div>
+    <?php endif; ?>
 </div>
 
 <?php require_once '../../includes/footer.php'; ?>

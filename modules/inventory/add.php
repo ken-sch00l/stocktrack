@@ -7,11 +7,6 @@ require_once '../../includes/db.php';
 $error = '';
 $success = '';
 
-// Generate tracking number
-$last = $conn->query("SELECT tracking_number FROM items ORDER BY item_id DESC LIMIT 1")->fetch_assoc();
-$next_num = $last ? (intval(substr($last['tracking_number'], 3)) + 1) : 1;
-$tracking_number = 'TRK' . str_pad($next_num, 5, '0', STR_PAD_LEFT);
-
 $categories = $conn->query("SELECT * FROM categories ORDER BY category_name ASC");
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -32,13 +27,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$item_name) {
         $error = "Item name is required.";
     } else {
+        $temporary_tracking_number = 'TMP-' . bin2hex(random_bytes(16));
+        $conn->begin_transaction();
+
         $stmt = $conn->prepare("INSERT INTO items (tracking_number, serial_number, item_name, category_id, condition_status, quantity, unit, date_purchased, person_in_charge, position, last_inventory_date, notes, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("sssisissssssi", $tracking_number, $serial_number, $item_name, $category_id, $condition, $quantity, $unit, $date_purchased, $person_charge, $position, $last_inventory, $notes, $created_by);
+        $stmt->bind_param("sssisissssssi", $temporary_tracking_number, $serial_number, $item_name, $category_id, $condition, $quantity, $unit, $date_purchased, $person_charge, $position, $last_inventory, $notes, $created_by);
 
         if ($stmt->execute()) {
-            header("Location: /stocktrack/modules/inventory/index.php?success=Item added successfully.");
-            exit();
+            $item_id = $conn->insert_id;
+            $tracking_number = 'TRK' . str_pad($item_id, 5, '0', STR_PAD_LEFT);
+            $update = $conn->prepare("UPDATE items SET tracking_number = ? WHERE item_id = ?");
+            $update->bind_param("si", $tracking_number, $item_id);
+
+            if (!$update->execute()) {
+                $conn->rollback();
+                $error = "Failed to generate tracking number. Please try again.";
+            } else {
+                $conn->commit();
+                header("Location: /stocktrack/modules/inventory/index.php?success=Item added successfully.");
+                exit();
+            }
         } else {
+            $conn->rollback();
             $error = "Failed to add item. Please try again.";
         }
     }
@@ -65,8 +75,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label">Tracking Number</label>
-                    <input type="text" class="form-control bg-light" value="<?php echo $tracking_number; ?>" readonly>
-                    <small class="text-muted">Auto-generated</small>
+                    <input type="text" class="form-control bg-light" value="Generated after saving" readonly>
+                    <small class="text-muted">Generated from the saved item ID</small>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Serial Number</label>

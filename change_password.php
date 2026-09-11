@@ -26,9 +26,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = "New passwords do not match.";
     } else {
         $hashed = password_hash($new, PASSWORD_DEFAULT);
-        $update = $conn->prepare("UPDATE users SET password = ? WHERE user_id = ?");
+        $update = $conn->prepare("UPDATE users SET password = ?, must_change_password = 0 WHERE user_id = ?");
         $update->bind_param("si", $hashed, $user_id);
         if ($update->execute()) {
+            $_SESSION['must_change_password'] = 0;
             $success = "Password changed successfully.";
         } else {
             $error = "Failed to change password.";

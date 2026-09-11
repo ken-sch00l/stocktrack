@@ -10,6 +10,10 @@ function requireLogin() {
         header("Location: /stocktrack/login.php");
         exit();
     }
+    if (!empty($_SESSION['must_change_password']) && basename($_SERVER['PHP_SELF']) !== 'change_password.php') {
+        header("Location: /stocktrack/change_password.php");
+        exit();
+    }
 }
 
 function getCurrentUser() {

@@ -23,8 +23,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             // Default password is 123456
             $hashed = password_hash('123456', PASSWORD_DEFAULT);
-            $stmt = $conn->prepare("INSERT INTO users (full_name, username, password, role) VALUES (?, ?, ?, ?)");
-            $stmt->bind_param("ssss", $full_name, $username, $hashed, $role);
+            $must_change_password = 1;
+            $stmt = $conn->prepare("INSERT INTO users (full_name, username, password, role, must_change_password) VALUES (?, ?, ?, ?, ?)");
+            $stmt->bind_param("ssssi", $full_name, $username, $hashed, $role, $must_change_password);
             if ($stmt->execute()) {
                 header("Location: /stocktrack/modules/users/index.php?success=User added. Default password is 123456.");
                 exit();

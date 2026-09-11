@@ -18,17 +18,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $date_returned = $_POST['date_returned'] ?: null;
     $recorded_by  = $_SESSION['user_id'];
 
+    $allowed_actions = ['Borrowed', 'Used', 'Returned'];
     if (!$item_id || !$borrowed_by || !$date_action) {
         $error = "Please fill in all required fields.";
+    } elseif (!in_array($action, $allowed_actions, true)) {
+        $error = "Invalid logbook action.";
+    } elseif ($quantity < 1) {
+        $error = "Quantity must be at least 1.";
     } else {
-        $stmt = $conn->prepare("INSERT INTO logbook (item_id, action, quantity, borrowed_by, purpose, date_action, date_returned, recorded_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("isissssi", $item_id, $action, $quantity, $borrowed_by, $purpose, $date_action, $date_returned, $recorded_by);
+        $conn->begin_transaction();
 
-        if ($stmt->execute()) {
-            header("Location: /stocktrack/modules/logbook/index.php?success=Logbook entry added successfully.");
-            exit();
+        $item_stmt = $conn->prepare("SELECT quantity FROM items WHERE item_id = ? FOR UPDATE");
+        $item_stmt->bind_param("i", $item_id);
+        $item_stmt->execute();
+        $item = $item_stmt->get_result()->fetch_assoc();
+
+        if (!$item) {
+            $conn->rollback();
+            $error = "Selected item was not found.";
         } else {
-            $error = "Failed to add entry. Please try again.";
+            $usage_stmt = $conn->prepare("SELECT COALESCE(SUM(CASE WHEN action = 'Borrowed' AND date_returned IS NULL THEN quantity WHEN action = 'Used' THEN quantity WHEN action = 'Returned' THEN -quantity ELSE 0 END), 0) AS allocated_quantity, COALESCE(SUM(CASE WHEN action = 'Borrowed' AND date_returned IS NULL THEN quantity WHEN action = 'Returned' THEN -quantity ELSE 0 END), 0) AS borrowed_quantity FROM logbook WHERE item_id = ?");
+            $usage_stmt->bind_param("i", $item_id);
+            $usage_stmt->execute();
+            $usage = $usage_stmt->get_result()->fetch_assoc();
+            $available_quantity = (int)$item['quantity'] - (int)$usage['allocated_quantity'];
+
+            if (($action === 'Borrowed' || $action === 'Used') && $quantity > $available_quantity) {
+                $conn->rollback();
+                $error = "Insufficient available stock. Only {$available_quantity} item(s) are available.";
+            } elseif ($action === 'Returned' && $quantity > (int)$usage['borrowed_quantity']) {
+                $conn->rollback();
+                $error = "Cannot return more items than are currently borrowed.";
+            } else {
+                $stmt = $conn->prepare("INSERT INTO logbook (item_id, action, quantity, borrowed_by, purpose, date_action, date_returned, recorded_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->bind_param("isissssi", $item_id, $action, $quantity, $borrowed_by, $purpose, $date_action, $date_returned, $recorded_by);
+
+                if ($stmt->execute()) {
+                    $conn->commit();
+                    header("Location: /stocktrack/modules/logbook/index.php?success=Logbook entry added successfully.");
+                    exit();
+                }
+
+                $conn->rollback();
+                $error = "Failed to add entry. Please try again.";
+            }
         }
     }
 }

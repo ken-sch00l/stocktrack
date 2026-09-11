@@ -11,6 +11,7 @@ CREATE TABLE users (
     full_name VARCHAR(100) NOT NULL,
     username VARCHAR(50) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
+    must_change_password TINYINT(1) NOT NULL DEFAULT 0,
     role ENUM('admin', 'secretary', 'treasurer', 'committee') NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -47,7 +48,7 @@ CREATE TABLE items (
 -- Logbook table
 CREATE TABLE logbook (
     log_id INT AUTO_INCREMENT PRIMARY KEY,
-    item_id INT NOT NULL,
+    item_id INT,
     action ENUM('Borrowed', 'Used', 'Returned') NOT NULL,
     quantity INT NOT NULL DEFAULT 1,
     borrowed_by VARCHAR(100) NOT NULL,
@@ -56,7 +57,7 @@ CREATE TABLE logbook (
     date_returned DATE,
     recorded_by INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (item_id) REFERENCES items(item_id) ON DELETE CASCADE,
+    FOREIGN KEY (item_id) REFERENCES items(item_id) ON DELETE SET NULL,
     FOREIGN KEY (recorded_by) REFERENCES users(user_id) ON DELETE SET NULL
 );
 
@@ -73,7 +74,8 @@ CREATE TABLE reports_log (
 
 -- Default admin user (password: admin123 -- change after setup)
 INSERT INTO users (full_name, username, password, role) VALUES
-('Administrator', 'admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin');
+INSERT INTO users (full_name, username, password, role, must_change_password) VALUES
+('Administrator', 'admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', 1);
 
 -- Default categories
 INSERT INTO categories (category_name) VALUES
