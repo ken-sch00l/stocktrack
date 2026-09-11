@@ -44,6 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = "Failed to generate tracking number. Please try again.";
             } else {
                 $conn->commit();
+                recordAudit('item_created', 'item', $item_id, $item_name);
                 header("Location: /stocktrack/modules/inventory/index.php?success=Item added successfully.");
                 exit();
             }

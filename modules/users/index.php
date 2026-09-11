@@ -23,6 +23,15 @@ $users = $conn->query("SELECT * FROM users ORDER BY full_name ASC");
     </div>
 <?php endif; ?>
 
+<?php if (isset($_SESSION['temporary_user_credentials'])): ?>
+    <div class="alert alert-warning">
+        Temporary credentials for <strong><?php echo htmlspecialchars($_SESSION['temporary_user_credentials']['username']); ?></strong>:
+        <code><?php echo htmlspecialchars($_SESSION['temporary_user_credentials']['password']); ?></code>
+        <br><small>Share this once through a secure channel. It will not be shown again.</small>
+    </div>
+    <?php unset($_SESSION['temporary_user_credentials']); ?>
+<?php endif; ?>
+
 <div class="card border-0 shadow-sm">
     <div class="card-body p-0">
         <table class="table table-hover mb-0">

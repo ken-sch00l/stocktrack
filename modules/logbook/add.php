@@ -55,6 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if ($stmt->execute()) {
                     $conn->commit();
+                    recordAudit('logbook_created', 'logbook', $conn->insert_id, $action . ': ' . $quantity);
                     header("Location: /stocktrack/modules/logbook/index.php?success=Logbook entry added successfully.");
                     exit();
                 }

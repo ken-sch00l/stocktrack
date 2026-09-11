@@ -30,6 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $update->bind_param("si", $hashed, $user_id);
         if ($update->execute()) {
             $_SESSION['must_change_password'] = 0;
+            recordAudit('password_changed', 'user', $user_id);
             $success = "Password changed successfully.";
         } else {
             $error = "Failed to change password.";

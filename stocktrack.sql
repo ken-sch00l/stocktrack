@@ -16,6 +16,25 @@ CREATE TABLE users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE login_attempts (
+    identifier VARCHAR(190) PRIMARY KEY,
+    attempts INT NOT NULL DEFAULT 0,
+    window_started DATETIME NOT NULL,
+    blocked_until DATETIME NULL
+);
+
+CREATE TABLE audit_log (
+    audit_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NULL,
+    action VARCHAR(50) NOT NULL,
+    entity_type VARCHAR(50),
+    entity_id INT NULL,
+    details TEXT,
+    ip_address VARCHAR(45),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL
+);
+
 -- Categories table
 CREATE TABLE categories (
     category_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -72,8 +91,6 @@ CREATE TABLE reports_log (
     FOREIGN KEY (generated_by) REFERENCES users(user_id) ON DELETE SET NULL
 );
 
--- Default admin user (password: admin123 -- change after setup)
-INSERT INTO users (full_name, username, password, role) VALUES
 INSERT INTO users (full_name, username, password, role, must_change_password) VALUES
 ('Administrator', 'admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', 1);
 

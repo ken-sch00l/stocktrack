@@ -36,6 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->bind_param("ssissssssssi", $serial_number, $item_name, $category_id, $condition, $quantity, $unit, $date_purchased, $person_charge, $position, $last_inventory, $notes, $id);
 
         if ($stmt->execute()) {
+            recordAudit('item_updated', 'item', $id, $item_name);
             header("Location: /stocktrack/modules/inventory/index.php?success=Item updated successfully.");
             exit();
         } else {

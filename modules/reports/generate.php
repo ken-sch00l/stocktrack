@@ -49,6 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $period_type) {
         $log_stmt = $conn->prepare("INSERT INTO reports_log (report_type, period_type, period_value, generated_by) VALUES (?, ?, ?, ?)");
         $log_stmt->bind_param("sssi", $type, $period_type, $period_value, $_SESSION['user_id']);
         $log_stmt->execute();
+        recordAudit('report_generated', 'report', $conn->insert_id, $type . ' ' . $period_type . ' ' . $period_value);
         $report_generated = true;
     }
 }

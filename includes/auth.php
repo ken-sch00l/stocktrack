@@ -1,5 +1,19 @@
 <?php
+$is_https = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path' => '/',
+    'secure' => $is_https,
+    'httponly' => true,
+    'samesite' => 'Lax'
+]);
 session_start();
+
+if (!headers_sent()) {
+    header('X-Content-Type-Options: nosniff');
+    header('X-Frame-Options: SAMEORIGIN');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+}
 
 function isLoggedIn() {
     return isset($_SESSION['user_id']);
@@ -68,5 +82,52 @@ function verify_csrf_token() {
         http_response_code(403);
         exit('Invalid CSRF token. Please go back and try again.');
     }
+}
+
+function login_identifier() {
+    return substr(($_SERVER['REMOTE_ADDR'] ?? 'unknown') . '|' . ($_POST['username'] ?? ''), 0, 190);
+}
+
+function isLoginRateLimited($identifier) {
+    global $conn;
+
+    if (!isset($conn)) {
+        return false;
+    }
+
+    $stmt = $conn->prepare("SELECT blocked_until FROM login_attempts WHERE identifier = ? AND blocked_until > NOW()");
+    $stmt->bind_param("s", $identifier);
+    $stmt->execute();
+    return (bool)$stmt->get_result()->fetch_assoc();
+}
+
+function recordLoginFailure($identifier) {
+    global $conn;
+
+    $stmt = $conn->prepare("INSERT INTO login_attempts (identifier, attempts, window_started, blocked_until) VALUES (?, 1, NOW(), NULL) ON DUPLICATE KEY UPDATE attempts = IF(window_started < DATE_SUB(NOW(), INTERVAL 15 MINUTE), 1, attempts + 1), window_started = IF(window_started < DATE_SUB(NOW(), INTERVAL 15 MINUTE), NOW(), window_started), blocked_until = IF(attempts + 1 >= 5, DATE_ADD(NOW(), INTERVAL 15 MINUTE), blocked_until)");
+    $stmt->bind_param("s", $identifier);
+    $stmt->execute();
+}
+
+function clearLoginFailures($identifier) {
+    global $conn;
+
+    $stmt = $conn->prepare("DELETE FROM login_attempts WHERE identifier = ?");
+    $stmt->bind_param("s", $identifier);
+    $stmt->execute();
+}
+
+function recordAudit($action, $entity_type = null, $entity_id = null, $details = null) {
+    global $conn;
+
+    if (!isset($conn)) {
+        return;
+    }
+
+    $user_id = $_SESSION['user_id'] ?? null;
+    $stmt = $conn->prepare("INSERT INTO audit_log (user_id, action, entity_type, entity_id, details, ip_address) VALUES (?, ?, ?, ?, ?, ?)");
+    $ip_address = $_SERVER['REMOTE_ADDR'] ?? null;
+    $stmt->bind_param("ississ", $user_id, $action, $entity_type, $entity_id, $details, $ip_address);
+    $stmt->execute();
 }
 ?>

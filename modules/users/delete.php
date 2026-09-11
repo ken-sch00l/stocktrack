@@ -22,6 +22,7 @@ if ($id) {
         $stmt = $conn->prepare("DELETE FROM users WHERE user_id = ?");
         $stmt->bind_param("i", $id);
         $stmt->execute();
+        recordAudit('user_deleted', 'user', $id);
         header("Location: /stocktrack/modules/users/index.php?success=User deleted successfully.");
     } else {
         header("Location: /stocktrack/modules/users/index.php");

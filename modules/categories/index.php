@@ -15,6 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $conn->prepare("DELETE FROM categories WHERE category_id = ?");
             $stmt->bind_param("i", $category_id);
             $stmt->execute();
+            recordAudit('category_deleted', 'category', $category_id);
             $success = "Category deleted.";
         }
     } else {
@@ -25,6 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $conn->prepare("INSERT INTO categories (category_name) VALUES (?)");
             $stmt->bind_param("s", $name);
             if ($stmt->execute()) {
+                recordAudit('category_created', 'category', $conn->insert_id, $name);
                 $success = "Category added successfully.";
             } else {
                 $error = "Failed to add category.";

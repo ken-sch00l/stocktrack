@@ -21,13 +21,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($check->get_result()->num_rows > 0) {
             $error = "Username already exists.";
         } else {
-            // Default password is 123456
-            $hashed = password_hash('123456', PASSWORD_DEFAULT);
+            $temporary_password = bin2hex(random_bytes(6));
+            $hashed = password_hash($temporary_password, PASSWORD_DEFAULT);
             $must_change_password = 1;
             $stmt = $conn->prepare("INSERT INTO users (full_name, username, password, role, must_change_password) VALUES (?, ?, ?, ?, ?)");
             $stmt->bind_param("ssssi", $full_name, $username, $hashed, $role, $must_change_password);
             if ($stmt->execute()) {
-                header("Location: /stocktrack/modules/users/index.php?success=User added. Default password is 123456.");
+                recordAudit('user_created', 'user', $conn->insert_id, 'Role: ' . $role);
+                $_SESSION['temporary_user_credentials'] = [
+                    'username' => $username,
+                    'password' => $temporary_password
+                ];
+                header("Location: /stocktrack/modules/users/index.php?success=User added. Share the temporary password securely.");
                 exit();
             } else {
                 $error = "Failed to add user.";
@@ -54,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="card-body">
         <div class="alert alert-info">
             <i class="bi bi-info-circle me-2"></i>
-            New users will be given a default password of <strong>123456</strong>. They can change it after logging in.
+            A random temporary password will be generated. The user must change it after logging in.
         </div>
         <form method="POST">
             <?php csrf_field(); ?>

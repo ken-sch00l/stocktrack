@@ -16,6 +16,7 @@ if ($id) {
     $stmt = $conn->prepare("DELETE FROM items WHERE item_id = ?");
     $stmt->bind_param("i", $id);
     $stmt->execute();
+    recordAudit('item_deleted', 'item', $id);
     header("Location: /stocktrack/modules/inventory/index.php?success=Item deleted successfully.");
 } else {
     header("Location: /stocktrack/modules/inventory/index.php");

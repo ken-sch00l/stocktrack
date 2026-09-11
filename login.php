@@ -16,25 +16,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf_token();
     $username = trim($_POST['username']);
     $password = $_POST['password'];
+    $login_identifier = login_identifier();
 
-    $stmt = $conn->prepare("SELECT * FROM users WHERE username = ?");
-    $stmt->bind_param("s", $username);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $user = $result->fetch_assoc();
-
-    if ($user && password_verify($password, $user['password'])) {
-        session_regenerate_id(true);
-        $_SESSION['user_id']   = $user['user_id'];
-        $_SESSION['full_name'] = $user['full_name'];
-        $_SESSION['role']      = $user['role'];
-        $_SESSION['must_change_password'] = (int)$user['must_change_password'];
-        $destination = $_SESSION['must_change_password']
-            ? '/stocktrack/change_password.php'
-            : '/stocktrack/dashboard.php';
-        header("Location: {$destination}");
-        exit();
+    if (isLoginRateLimited($login_identifier)) {
+        $error = "Too many failed attempts. Please try again later.";
     } else {
+        $stmt = $conn->prepare("SELECT * FROM users WHERE username = ?");
+        $stmt->bind_param("s", $username);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $user = $result->fetch_assoc();
+
+        if ($user && password_verify($password, $user['password'])) {
+            clearLoginFailures($login_identifier);
+            session_regenerate_id(true);
+            $_SESSION['user_id']   = $user['user_id'];
+            $_SESSION['full_name'] = $user['full_name'];
+            $_SESSION['role']      = $user['role'];
+            $_SESSION['must_change_password'] = (int)$user['must_change_password'];
+            recordAudit('login_success', 'user', $user['user_id']);
+            $destination = $_SESSION['must_change_password']
+                ? '/stocktrack/change_password.php'
+                : '/stocktrack/dashboard.php';
+            header("Location: {$destination}");
+            exit();
+        }
+
+        recordLoginFailure($login_identifier);
+        recordAudit('login_failure', 'user', null, 'Invalid credentials');
         $error = "Invalid username or password.";
     }
 }
