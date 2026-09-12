@@ -96,6 +96,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if ($stmt->execute()) {
                     $logbook_id = $conn->insert_id;
+                    if ($action === 'Returned' && $quantity === (int)$returning_borrow['remaining_quantity']) {
+                        $close_borrow_stmt = $conn->prepare("UPDATE logbook SET date_returned = ? WHERE log_id = ?");
+                        $close_borrow_stmt->bind_param("si", $date_action, $return_for_log_id);
+                        $close_borrow_stmt->execute();
+                    }
                     $notification_message = $action . ' ' . $quantity . ' of ' . $item['item_name'] . ' by ' . $borrowed_by . '.';
                     $recipient_stmt = $conn->prepare("SELECT user_id FROM users WHERE role IN ('admin', 'treasurer')");
                     $recipient_stmt->execute();
