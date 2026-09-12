@@ -12,7 +12,7 @@ CREATE TABLE users (
     username VARCHAR(50) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     must_change_password TINYINT(1) NOT NULL DEFAULT 0,
-    role ENUM('admin', 'secretary', 'treasurer', 'committee') NOT NULL,
+    role ENUM('super_admin', 'admin', 'secretary', 'treasurer', 'committee') NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -68,6 +68,7 @@ CREATE TABLE items (
 CREATE TABLE logbook (
     log_id INT AUTO_INCREMENT PRIMARY KEY,
     item_id INT,
+    return_for_log_id INT NULL,
     action ENUM('Borrowed', 'Used', 'Returned') NOT NULL,
     quantity INT NOT NULL DEFAULT 1,
     borrowed_by VARCHAR(100) NOT NULL,
@@ -77,6 +78,7 @@ CREATE TABLE logbook (
     recorded_by INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (item_id) REFERENCES items(item_id) ON DELETE SET NULL,
+    FOREIGN KEY (return_for_log_id) REFERENCES logbook(log_id) ON DELETE SET NULL,
     FOREIGN KEY (recorded_by) REFERENCES users(user_id) ON DELETE SET NULL
 );
 

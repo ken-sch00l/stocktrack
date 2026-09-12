@@ -11,9 +11,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $full_name = trim($_POST['full_name']);
     $username  = trim($_POST['username']);
     $role      = $_POST['role'];
+    $allowed_roles = hasRole('super_admin')
+        ? ['admin', 'super_admin', 'secretary', 'treasurer', 'committee']
+        : ['admin', 'secretary', 'treasurer', 'committee'];
 
     if (!$full_name || !$username) {
         $error = "Full name and username are required.";
+    } elseif (!in_array($role, $allowed_roles, true)) {
+        $error = "You cannot create an account with that role.";
     } else {
         $check = $conn->prepare("SELECT user_id FROM users WHERE username = ?");
         $check->bind_param("s", $username);
@@ -79,6 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <option value="treasurer">Treasurer</option>
                         <option value="committee">Committee on Inventory</option>
                         <option value="admin">Administrator</option>
+                        <?php if (hasRole('super_admin')): ?><option value="super_admin">Super Administrator</option><?php endif; ?>
                     </select>
                 </div>
                 <div class="col-12">

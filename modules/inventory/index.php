@@ -177,7 +177,7 @@ $categories = $conn->query("SELECT * FROM categories ORDER BY category_name ASC"
                             <a href="view.php?id=<?php echo $row['item_id']; ?>" class="btn btn-sm btn-outline-primary" title="View">
                                 <i class="bi bi-eye"></i>
                             </a>
-                            <?php if (hasRole('admin')): ?>
+                            <?php if (hasAnyRole(['admin', 'super_admin'])): ?>
                                 <a href="edit.php?id=<?php echo $row['item_id']; ?>" class="btn btn-sm btn-outline-warning" title="Edit">
                                     <i class="bi bi-pencil"></i>
                                 </a>

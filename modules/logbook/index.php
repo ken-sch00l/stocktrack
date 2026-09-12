@@ -46,14 +46,14 @@ if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_to)) {
     $types .= 's';
 }
 
-$log_sql = "SELECT l.*, COALESCE(i.item_name, 'Deleted item') AS item_name, COALESCE(i.tracking_number, 'N/A') AS tracking_number, u.full_name as recorder FROM logbook l LEFT JOIN items i ON l.item_id = i.item_id LEFT JOIN users u ON l.recorded_by = u.user_id $where ORDER BY {$sort_columns[$sort_by]} $sort_direction, l.log_id DESC";
+$log_sql = "SELECT l.*, COALESCE(i.item_name, 'Deleted item') AS item_name, COALESCE(i.tracking_number, 'N/A') AS tracking_number, u.full_name as recorder, CASE WHEN l.action = 'Borrowed' AND COALESCE(rt.returned_quantity, 0) = 0 THEN 'Still out' WHEN l.action = 'Borrowed' AND COALESCE(rt.returned_quantity, 0) < l.quantity THEN 'Partially returned' WHEN l.action = 'Borrowed' THEN 'Fully returned' WHEN l.action = 'Returned' THEN 'Return recorded' ELSE 'Completed' END AS transaction_status FROM logbook l LEFT JOIN items i ON l.item_id = i.item_id LEFT JOIN users u ON l.recorded_by = u.user_id LEFT JOIN (SELECT return_for_log_id, SUM(quantity) AS returned_quantity FROM logbook WHERE action = 'Returned' GROUP BY return_for_log_id) rt ON rt.return_for_log_id = l.log_id $where ORDER BY {$sort_columns[$sort_by]} $sort_direction, l.log_id DESC";
 $log_stmt = $conn->prepare($log_sql);
 if ($params) {
     $log_stmt->bind_param($types, ...$params);
 }
 $log_stmt->execute();
 $logs = $log_stmt->get_result();
-$outstanding = $conn->query("SELECT l.borrowed_by, COALESCE(SUM(CASE WHEN l.action = 'Borrowed' AND l.date_returned IS NULL THEN l.quantity WHEN l.action = 'Returned' THEN -l.quantity ELSE 0 END), 0) AS outstanding_quantity, GROUP_CONCAT(DISTINCT COALESCE(i.item_name, 'Deleted item') ORDER BY i.item_name SEPARATOR ', ') AS item_names FROM logbook l LEFT JOIN items i ON l.item_id = i.item_id GROUP BY l.borrowed_by HAVING outstanding_quantity > 0 ORDER BY l.borrowed_by ASC");
+$outstanding = $conn->query("SELECT l.borrowed_by, COALESCE(SUM(CASE WHEN l.action = 'Borrowed' THEN l.quantity WHEN l.action = 'Returned' THEN -l.quantity ELSE 0 END), 0) AS outstanding_quantity, GROUP_CONCAT(DISTINCT COALESCE(i.item_name, 'Deleted item') ORDER BY i.item_name SEPARATOR ', ') AS item_names FROM logbook l LEFT JOIN items i ON l.item_id = i.item_id GROUP BY l.borrowed_by HAVING outstanding_quantity > 0 ORDER BY l.borrowed_by ASC");
 ?>
 <?php require_once '../../includes/header.php'; ?>
 <?php require_once '../../includes/sidebar.php'; ?>
@@ -136,6 +136,7 @@ $outstanding = $conn->query("SELECT l.borrowed_by, COALESCE(SUM(CASE WHEN l.acti
                     <th>Purpose</th>
                     <th>Date</th>
                     <th>Date Returned</th>
+                    <th>Status</th>
                     <th>Recorded By</th>
                 </tr>
             </thead>
@@ -151,11 +152,22 @@ $outstanding = $conn->query("SELECT l.borrowed_by, COALESCE(SUM(CASE WHEN l.acti
                         <td><?php echo htmlspecialchars($row['purpose'] ?? 'N/A'); ?></td>
                         <td><?php echo date('M d, Y', strtotime($row['date_action'])); ?></td>
                         <td><?php echo $row['date_returned'] ? date('M d, Y', strtotime($row['date_returned'])) : '<span class="text-warning">Pending</span>'; ?></td>
+                        <td>
+                            <?php if ($row['transaction_status'] === 'Still out'): ?>
+                                <span class="badge bg-danger">Still out</span>
+                            <?php elseif ($row['transaction_status'] === 'Partially returned'): ?>
+                                <span class="badge bg-warning text-dark">Partially returned</span>
+                            <?php elseif ($row['transaction_status'] === 'Fully returned' || $row['transaction_status'] === 'Return recorded'): ?>
+                                <span class="badge bg-success"><?php echo htmlspecialchars($row['transaction_status']); ?></span>
+                            <?php else: ?>
+                                <span class="badge bg-secondary">Completed</span>
+                            <?php endif; ?>
+                        </td>
                         <td><?php echo htmlspecialchars($row['recorder'] ?? 'N/A'); ?></td>
                     </tr>
                     <?php endwhile; ?>
                 <?php else: ?>
-                    <tr><td colspan="9" class="text-center text-muted py-4">No logbook entries yet.</td></tr>
+                    <tr><td colspan="10" class="text-center text-muted py-4">No logbook entries yet.</td></tr>
                 <?php endif; ?>
             </tbody>
         </table>

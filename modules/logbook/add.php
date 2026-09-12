@@ -12,7 +12,9 @@ $form_borrowed_by = '';
 $form_purpose = '';
 $form_date_action = '';
 $form_date_returned = '';
-$items = $conn->query("SELECT i.item_id, i.item_name, i.tracking_number, i.quantity AS total_quantity, COALESCE(SUM(CASE WHEN l.action = 'Borrowed' AND l.date_returned IS NULL THEN l.quantity WHEN l.action = 'Used' THEN l.quantity WHEN l.action = 'Returned' THEN -l.quantity ELSE 0 END), 0) AS allocated_quantity, COALESCE(SUM(CASE WHEN l.action = 'Borrowed' AND l.date_returned IS NULL THEN l.quantity WHEN l.action = 'Returned' THEN -l.quantity ELSE 0 END), 0) AS borrowed_quantity FROM items i LEFT JOIN logbook l ON l.item_id = i.item_id GROUP BY i.item_id ORDER BY i.item_name ASC");
+$form_return_for_log_id = '';
+$items = $conn->query("SELECT i.item_id, i.item_name, i.tracking_number, i.quantity AS total_quantity, COALESCE(SUM(CASE WHEN l.action = 'Borrowed' THEN l.quantity WHEN l.action = 'Used' THEN l.quantity WHEN l.action = 'Returned' THEN -l.quantity ELSE 0 END), 0) AS allocated_quantity, COALESCE(SUM(CASE WHEN l.action = 'Borrowed' THEN l.quantity WHEN l.action = 'Returned' THEN -l.quantity ELSE 0 END), 0) AS borrowed_quantity FROM items i LEFT JOIN logbook l ON l.item_id = i.item_id GROUP BY i.item_id ORDER BY i.item_name ASC");
+$borrowings = $conn->query("SELECT b.log_id, b.item_id, b.borrowed_by, b.quantity, b.date_action, i.item_name, b.quantity - COALESCE(SUM(r.quantity), 0) AS remaining_quantity FROM logbook b JOIN items i ON i.item_id = b.item_id LEFT JOIN logbook r ON r.return_for_log_id = b.log_id AND r.action = 'Returned' WHERE b.action = 'Borrowed' GROUP BY b.log_id, b.item_id, b.borrowed_by, b.quantity, b.date_action, i.item_name HAVING remaining_quantity > 0 ORDER BY b.date_action ASC, i.item_name ASC");
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf_token();
@@ -23,6 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $form_purpose = trim($_POST['purpose'] ?? '');
     $form_date_action = $_POST['date_action'] ?? '';
     $form_date_returned = $_POST['date_returned'] ?? '';
+    $form_return_for_log_id = $_POST['return_for_log_id'] ?? '';
 
     $item_id      = (int)$form_item_id;
     $action       = $form_action;
@@ -31,6 +34,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $purpose      = $form_purpose;
     $date_action  = $form_date_action;
     $date_returned = $form_date_returned ?: null;
+    if ($action !== 'Returned') {
+        $date_returned = null;
+    }
     $recorded_by  = $_SESSION['user_id'];
 
     $allowed_actions = ['Borrowed', 'Used', 'Returned'];
@@ -40,6 +46,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = "Invalid logbook action.";
     } elseif ($quantity < 1) {
         $error = "Quantity must be at least 1.";
+    } elseif ($action === 'Returned' && !(int)$form_return_for_log_id) {
+        $error = "Select the specific borrowing transaction being returned.";
     } else {
         $conn->begin_transaction();
 
@@ -52,24 +60,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $conn->rollback();
             $error = "Selected item was not found.";
         } else {
-            $usage_stmt = $conn->prepare("SELECT COALESCE(SUM(CASE WHEN action = 'Borrowed' AND date_returned IS NULL THEN quantity WHEN action = 'Used' THEN quantity WHEN action = 'Returned' THEN -quantity ELSE 0 END), 0) AS allocated_quantity, COALESCE(SUM(CASE WHEN action = 'Borrowed' AND date_returned IS NULL THEN quantity WHEN action = 'Returned' THEN -quantity ELSE 0 END), 0) AS borrowed_quantity FROM logbook WHERE item_id = ?");
+            $usage_stmt = $conn->prepare("SELECT COALESCE(SUM(CASE WHEN action = 'Borrowed' THEN quantity WHEN action = 'Used' THEN quantity WHEN action = 'Returned' THEN -quantity ELSE 0 END), 0) AS allocated_quantity, COALESCE(SUM(CASE WHEN action = 'Borrowed' THEN quantity WHEN action = 'Returned' THEN -quantity ELSE 0 END), 0) AS borrowed_quantity FROM logbook WHERE item_id = ?");
             $usage_stmt->bind_param("i", $item_id);
             $usage_stmt->execute();
             $usage = $usage_stmt->get_result()->fetch_assoc();
             $available_quantity = (int)$item['quantity'] - (int)$usage['allocated_quantity'];
 
+            $returning_borrow = null;
+            if ($action === 'Returned') {
+                $return_stmt = $conn->prepare("SELECT b.item_id, b.borrowed_by, b.quantity - COALESCE(SUM(r.quantity), 0) AS remaining_quantity FROM logbook b LEFT JOIN logbook r ON r.return_for_log_id = b.log_id AND r.action = 'Returned' WHERE b.log_id = ? AND b.action = 'Borrowed' GROUP BY b.log_id, b.item_id, b.borrowed_by, b.quantity FOR UPDATE");
+                $return_stmt->bind_param("i", $form_return_for_log_id);
+                $return_stmt->execute();
+                $returning_borrow = $return_stmt->get_result()->fetch_assoc();
+            }
+
             if (($action === 'Borrowed' || $action === 'Used') && $quantity > $available_quantity) {
                 $conn->rollback();
                 $error = "Insufficient available stock. Only {$available_quantity} item(s) are available.";
-            } elseif ($action === 'Returned' && $quantity > (int)$usage['borrowed_quantity']) {
+            } elseif ($action === 'Returned' && (!$returning_borrow || (int)$returning_borrow['item_id'] !== $item_id)) {
                 $conn->rollback();
-                $error = "Cannot return more items than are currently borrowed.";
+                $error = "The selected borrowing transaction does not belong to this item.";
+            } elseif ($action === 'Returned' && $quantity > (int)$returning_borrow['remaining_quantity']) {
+                $conn->rollback();
+                $error = "Only {$returning_borrow['remaining_quantity']} item(s) remain to be returned for this borrowing transaction.";
             } else {
-                $stmt = $conn->prepare("INSERT INTO logbook (item_id, action, quantity, borrowed_by, purpose, date_action, date_returned, recorded_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                $stmt->bind_param("isissssi", $item_id, $action, $quantity, $borrowed_by, $purpose, $date_action, $date_returned, $recorded_by);
+                if ($action === 'Returned') {
+                    $borrowed_by = $returning_borrow['borrowed_by'];
+                    $return_for_log_id = (int)$form_return_for_log_id;
+                    $stmt = $conn->prepare("INSERT INTO logbook (item_id, return_for_log_id, action, quantity, borrowed_by, purpose, date_action, date_returned, recorded_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->bind_param("iisissssi", $item_id, $return_for_log_id, $action, $quantity, $borrowed_by, $purpose, $date_action, $date_returned, $recorded_by);
+                } else {
+                    $stmt = $conn->prepare("INSERT INTO logbook (item_id, return_for_log_id, action, quantity, borrowed_by, purpose, date_action, date_returned, recorded_by) VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->bind_param("isissssi", $item_id, $action, $quantity, $borrowed_by, $purpose, $date_action, $date_returned, $recorded_by);
+                }
 
                 if ($stmt->execute()) {
                     $logbook_id = $conn->insert_id;
+                    if ($action === 'Returned' && $quantity === (int)$returning_borrow['remaining_quantity']) {
+                        $close_borrow_stmt = $conn->prepare("UPDATE logbook SET date_returned = ? WHERE log_id = ?");
+                        $close_borrow_stmt->bind_param("si", $date_action, $return_for_log_id);
+                        $close_borrow_stmt->execute();
+                    }
                     $notification_message = $action . ' ' . $quantity . ' of ' . $item['item_name'] . ' by ' . $borrowed_by . '.';
                     $recipient_stmt = $conn->prepare("SELECT user_id FROM users WHERE role IN ('admin', 'treasurer')");
                     $recipient_stmt->execute();
@@ -114,6 +145,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label">Item <span class="text-danger">*</span></label>
+                    <input type="search" id="itemSearch" class="form-control mb-2" placeholder="Search item name or tracking number" autocomplete="off">
                     <select name="item_id" class="form-select" required>
                         <option value="">Select Item</option>
                         <?php while($item = $items->fetch_assoc()): ?>
@@ -135,6 +167,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <option value="Used" <?php echo $form_action === 'Used' ? 'selected' : ''; ?>>Used</option>
                         <option value="Returned" <?php echo $form_action === 'Returned' ? 'selected' : ''; ?>>Returned</option>
                     </select>
+                </div>
+                <div class="col-md-6" id="returnTransactionField">
+                    <label class="form-label">Borrowing to return <span class="text-danger">*</span></label>
+                    <select name="return_for_log_id" class="form-select">
+                        <option value="">Select borrowing transaction</option>
+                        <?php while ($borrowing = $borrowings->fetch_assoc()): ?>
+                            <option value="<?php echo (int)$borrowing['log_id']; ?>" data-item-id="<?php echo (int)$borrowing['item_id']; ?>" data-remaining="<?php echo (int)$borrowing['remaining_quantity']; ?>" <?php echo (string)$form_return_for_log_id === (string)$borrowing['log_id'] ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($borrowing['item_name'] . ' - ' . $borrowing['borrowed_by'] . ' (' . $borrowing['remaining_quantity'] . ' remaining)'); ?>
+                            </option>
+                        <?php endwhile; ?>
+                    </select>
+                    <small class="text-muted">This ties the return to the exact borrower and item.</small>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Quantity</label>
@@ -169,8 +213,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <script>
     const itemSelect = document.querySelector('select[name="item_id"]');
+    const itemSearch = document.getElementById('itemSearch');
     const actionSelect = document.querySelector('select[name="action"]');
     const stockTracker = document.getElementById('stockTracker');
+    const returnTransactionField = document.getElementById('returnTransactionField');
+    const returnTransactionSelect = document.querySelector('select[name="return_for_log_id"]');
     let latestStock = null;
 
     function renderStockTracker(stock) {
@@ -209,10 +256,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    itemSearch.addEventListener('input', function() {
+        const searchTerm = itemSearch.value.trim().toLowerCase();
+        Array.from(itemSelect.options).forEach(function(option) {
+            if (!option.value) return;
+            option.hidden = searchTerm !== '' && !option.textContent.toLowerCase().includes(searchTerm);
+        });
+    });
+
     itemSelect.addEventListener('change', refreshStockTracker);
     actionSelect.addEventListener('change', function() {
+        returnTransactionField.style.display = actionSelect.value === 'Returned' ? 'block' : 'none';
         if (latestStock) renderStockTracker(latestStock);
     });
+    returnTransactionField.style.display = actionSelect.value === 'Returned' ? 'block' : 'none';
     refreshStockTracker();
     setInterval(refreshStockTracker, 10000);
 </script>

@@ -20,7 +20,7 @@
                 <i class="bi bi-journal-text me-2"></i>Logbook
             </a>
         </li>
-        <?php if (hasAnyRole(['admin', 'treasurer'])): ?>
+        <?php if (hasAnyRole(['admin', 'super_admin', 'treasurer'])): ?>
         <?php $unread_notifications = $conn->query("SELECT COUNT(*) AS unread_count FROM notifications WHERE recipient_user_id = " . (int)$_SESSION['user_id'] . " AND is_read = 0")->fetch_assoc()['unread_count']; ?>
         <li class="nav-item">
             <a href="/stocktrack/modules/notifications/index.php" class="nav-link text-white">
@@ -37,11 +37,16 @@
             <span class="text-muted small px-2">ACCOUNT</span>
         </li>
         <li class="nav-item">
+            <a href="/stocktrack/profile.php" class="nav-link text-white">
+                <i class="bi bi-person-circle me-2"></i>My Profile
+            </a>
+        </li>
+        <li class="nav-item">
             <a href="/stocktrack/change_password.php" class="nav-link text-white">
                 <i class="bi bi-key me-2"></i>Change Password
             </a>
         </li>
-        <?php if ($_SESSION['role'] === 'admin'): ?>
+        <?php if (hasAnyRole(['admin', 'super_admin'])): ?>
         <li class="nav-item mt-2">
             <span class="text-muted small px-2">ADMIN</span>
         </li>
