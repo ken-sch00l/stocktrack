@@ -8,6 +8,19 @@ require_once '../../includes/db.php';
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $category_filter = isset($_GET['category']) ? (int)$_GET['category'] : 0;
 $condition_filter = isset($_GET['condition']) ? $_GET['condition'] : '';
+$sort_by = $_GET['sort'] ?? 'item_name';
+$sort_direction = strtoupper($_GET['direction'] ?? 'ASC');
+$sort_columns = [
+    'tracking' => 'i.tracking_number',
+    'item_name' => 'i.item_name',
+    'category' => 'c.category_name',
+    'condition' => 'i.condition_status',
+    'quantity' => 'i.quantity',
+    'date_purchased' => 'i.date_purchased',
+    'date_added' => 'i.created_at'
+];
+$sort_by = array_key_exists($sort_by, $sort_columns) ? $sort_by : 'item_name';
+$sort_direction = in_array($sort_direction, ['ASC', 'DESC'], true) ? $sort_direction : 'ASC';
 
 $where = "WHERE 1=1";
 $params = [];
@@ -49,7 +62,7 @@ $pagination_url = function ($target_page) use ($query_params) {
     return '?' . htmlspecialchars(http_build_query(array_merge($query_params, ['page' => $target_page])), ENT_QUOTES, 'UTF-8');
 };
 
-$sql = "SELECT i.*, c.category_name FROM items i LEFT JOIN categories c ON i.category_id = c.category_id $where ORDER BY i.item_name ASC LIMIT ? OFFSET ?";
+$sql = "SELECT i.*, c.category_name FROM items i LEFT JOIN categories c ON i.category_id = c.category_id $where ORDER BY {$sort_columns[$sort_by]} $sort_direction, i.item_id ASC LIMIT ? OFFSET ?";
 $stmt = $conn->prepare($sql);
 $limit_params = $params;
 $limit_params[] = $per_page;
@@ -100,6 +113,23 @@ $categories = $conn->query("SELECT * FROM categories ORDER BY category_name ASC"
                     <option value="">All Conditions</option>
                     <option value="Serviceable" <?php echo $condition_filter === 'Serviceable' ? 'selected' : ''; ?>>Serviceable</option>
                     <option value="Unserviceable" <?php echo $condition_filter === 'Unserviceable' ? 'selected' : ''; ?>>Unserviceable</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="sort" class="form-select" aria-label="Sort inventory">
+                    <option value="item_name" <?php echo $sort_by === 'item_name' ? 'selected' : ''; ?>>Name</option>
+                    <option value="category" <?php echo $sort_by === 'category' ? 'selected' : ''; ?>>Category</option>
+                    <option value="condition" <?php echo $sort_by === 'condition' ? 'selected' : ''; ?>>Condition</option>
+                    <option value="quantity" <?php echo $sort_by === 'quantity' ? 'selected' : ''; ?>>Quantity</option>
+                    <option value="date_purchased" <?php echo $sort_by === 'date_purchased' ? 'selected' : ''; ?>>Purchase date</option>
+                    <option value="date_added" <?php echo $sort_by === 'date_added' ? 'selected' : ''; ?>>Date added</option>
+                    <option value="tracking" <?php echo $sort_by === 'tracking' ? 'selected' : ''; ?>>Tracking number</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="direction" class="form-select" aria-label="Sort direction">
+                    <option value="ASC" <?php echo $sort_direction === 'ASC' ? 'selected' : ''; ?>>Ascending</option>
+                    <option value="DESC" <?php echo $sort_direction === 'DESC' ? 'selected' : ''; ?>>Descending</option>
                 </select>
             </div>
             <div class="col-md-2">

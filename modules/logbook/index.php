@@ -4,7 +4,55 @@ requireLogin();
 requirePermission('view');
 require_once '../../includes/db.php';
 
-$logs = $conn->query("SELECT l.*, COALESCE(i.item_name, 'Deleted item') AS item_name, COALESCE(i.tracking_number, 'N/A') AS tracking_number, u.full_name as recorder FROM logbook l LEFT JOIN items i ON l.item_id = i.item_id LEFT JOIN users u ON l.recorded_by = u.user_id ORDER BY l.date_action DESC");
+$search = trim($_GET['search'] ?? '');
+$action_filter = $_GET['action'] ?? '';
+$date_from = $_GET['date_from'] ?? '';
+$date_to = $_GET['date_to'] ?? '';
+$sort_by = $_GET['sort'] ?? 'date_action';
+$sort_direction = strtoupper($_GET['direction'] ?? 'DESC');
+$sort_columns = [
+    'date_action' => 'l.date_action',
+    'item' => 'i.item_name',
+    'borrowed_by' => 'l.borrowed_by',
+    'action' => 'l.action',
+    'quantity' => 'l.quantity',
+    'date_recorded' => 'l.created_at'
+];
+$sort_by = array_key_exists($sort_by, $sort_columns) ? $sort_by : 'date_action';
+$sort_direction = in_array($sort_direction, ['ASC', 'DESC'], true) ? $sort_direction : 'DESC';
+
+$where = 'WHERE 1=1';
+$params = [];
+$types = '';
+if ($search) {
+    $where .= " AND (i.item_name LIKE ? OR i.tracking_number LIKE ? OR l.borrowed_by LIKE ?)";
+    $search_value = "%$search%";
+    array_push($params, $search_value, $search_value, $search_value);
+    $types .= 'sss';
+}
+if (in_array($action_filter, ['Borrowed', 'Used', 'Returned'], true)) {
+    $where .= ' AND l.action = ?';
+    $params[] = $action_filter;
+    $types .= 's';
+}
+if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_from)) {
+    $where .= ' AND l.date_action >= ?';
+    $params[] = $date_from;
+    $types .= 's';
+}
+if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_to)) {
+    $where .= ' AND l.date_action <= ?';
+    $params[] = $date_to;
+    $types .= 's';
+}
+
+$log_sql = "SELECT l.*, COALESCE(i.item_name, 'Deleted item') AS item_name, COALESCE(i.tracking_number, 'N/A') AS tracking_number, u.full_name as recorder FROM logbook l LEFT JOIN items i ON l.item_id = i.item_id LEFT JOIN users u ON l.recorded_by = u.user_id $where ORDER BY {$sort_columns[$sort_by]} $sort_direction, l.log_id DESC";
+$log_stmt = $conn->prepare($log_sql);
+if ($params) {
+    $log_stmt->bind_param($types, ...$params);
+}
+$log_stmt->execute();
+$logs = $log_stmt->get_result();
 $outstanding = $conn->query("SELECT l.borrowed_by, COALESCE(SUM(CASE WHEN l.action = 'Borrowed' AND l.date_returned IS NULL THEN l.quantity WHEN l.action = 'Returned' THEN -l.quantity ELSE 0 END), 0) AS outstanding_quantity, GROUP_CONCAT(DISTINCT COALESCE(i.item_name, 'Deleted item') ORDER BY i.item_name SEPARATOR ', ') AS item_names FROM logbook l LEFT JOIN items i ON l.item_id = i.item_id GROUP BY l.borrowed_by HAVING outstanding_quantity > 0 ORDER BY l.borrowed_by ASC");
 ?>
 <?php require_once '../../includes/header.php'; ?>
@@ -25,6 +73,55 @@ $outstanding = $conn->query("SELECT l.borrowed_by, COALESCE(SUM(CASE WHEN l.acti
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 <?php endif; ?>
+
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Search</label>
+                <input type="text" name="search" class="form-control" placeholder="Item, tracking no., borrower" value="<?php echo htmlspecialchars($search); ?>">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Action</label>
+                <select name="action" class="form-select">
+                    <option value="">All actions</option>
+                    <option value="Borrowed" <?php echo $action_filter === 'Borrowed' ? 'selected' : ''; ?>>Borrowed</option>
+                    <option value="Used" <?php echo $action_filter === 'Used' ? 'selected' : ''; ?>>Used</option>
+                    <option value="Returned" <?php echo $action_filter === 'Returned' ? 'selected' : ''; ?>>Returned</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">From</label>
+                <input type="date" name="date_from" class="form-control" value="<?php echo htmlspecialchars($date_from); ?>">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">To</label>
+                <input type="date" name="date_to" class="form-control" value="<?php echo htmlspecialchars($date_to); ?>">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Sort</label>
+                <select name="sort" class="form-select">
+                    <option value="date_action" <?php echo $sort_by === 'date_action' ? 'selected' : ''; ?>>Action date</option>
+                    <option value="item" <?php echo $sort_by === 'item' ? 'selected' : ''; ?>>Item</option>
+                    <option value="borrowed_by" <?php echo $sort_by === 'borrowed_by' ? 'selected' : ''; ?>>Borrower</option>
+                    <option value="action" <?php echo $sort_by === 'action' ? 'selected' : ''; ?>>Action</option>
+                    <option value="quantity" <?php echo $sort_by === 'quantity' ? 'selected' : ''; ?>>Quantity</option>
+                    <option value="date_recorded" <?php echo $sort_by === 'date_recorded' ? 'selected' : ''; ?>>Date recorded</option>
+                </select>
+            </div>
+            <div class="col-md-1">
+                <select name="direction" class="form-select" aria-label="Sort direction">
+                    <option value="DESC" <?php echo $sort_direction === 'DESC' ? 'selected' : ''; ?>>Down</option>
+                    <option value="ASC" <?php echo $sort_direction === 'ASC' ? 'selected' : ''; ?>>Up</option>
+                </select>
+            </div>
+            <div class="col-md-12">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-funnel me-1"></i>Apply filters</button>
+                <a href="index.php" class="btn btn-outline-secondary">Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
 
 <div class="card border-0 shadow-sm">
     <div class="card-body p-0">

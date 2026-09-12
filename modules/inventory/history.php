@@ -6,6 +6,18 @@ require_once '../../includes/db.php';
 
 $period = isset($_GET['period']) ? $_GET['period'] : 'monthly';
 $value  = isset($_GET['value'])  ? $_GET['value']  : date('Y-m');
+$sort_by = $_GET['sort'] ?? 'item_name';
+$sort_direction = strtoupper($_GET['direction'] ?? 'ASC');
+$sort_columns = [
+    'item_name' => 'i.item_name',
+    'category' => 'c.category_name',
+    'condition' => 'i.condition_status',
+    'quantity' => 'i.quantity',
+    'date_purchased' => 'i.date_purchased',
+    'date_recorded' => 'i.created_at'
+];
+$sort_by = array_key_exists($sort_by, $sort_columns) ? $sort_by : 'item_name';
+$sort_direction = in_array($sort_direction, ['ASC', 'DESC'], true) ? $sort_direction : 'ASC';
 
 $start_date = '';
 $end_date = '';
@@ -32,7 +44,7 @@ if ($period === 'weekly') {
 
 $where = "WHERE i.created_at >= ? AND i.created_at < ?";
 
-$item_stmt = $conn->prepare("SELECT i.*, c.category_name FROM items i LEFT JOIN categories c ON i.category_id = c.category_id $where ORDER BY i.item_name ASC");
+$item_stmt = $conn->prepare("SELECT i.*, c.category_name FROM items i LEFT JOIN categories c ON i.category_id = c.category_id $where ORDER BY {$sort_columns[$sort_by]} $sort_direction, i.item_id ASC");
 $item_stmt->bind_param("ss", $start_date, $end_date);
 $item_stmt->execute();
 $items = $item_stmt->get_result();
@@ -77,6 +89,22 @@ $unserv = $unserviceable_stmt->get_result()->fetch_assoc()['cnt'];
                        class="form-control"
                        value="<?php echo htmlspecialchars($value); ?>"
                        <?php echo $period === 'yearly' ? 'min="2000" max="2099"' : ''; ?>>
+            </div>
+            <div class="col-md-2">
+                <select name="sort" class="form-select" aria-label="Sort history">
+                    <option value="item_name" <?php echo $sort_by === 'item_name' ? 'selected' : ''; ?>>Name</option>
+                    <option value="category" <?php echo $sort_by === 'category' ? 'selected' : ''; ?>>Category</option>
+                    <option value="condition" <?php echo $sort_by === 'condition' ? 'selected' : ''; ?>>Condition</option>
+                    <option value="quantity" <?php echo $sort_by === 'quantity' ? 'selected' : ''; ?>>Quantity</option>
+                    <option value="date_purchased" <?php echo $sort_by === 'date_purchased' ? 'selected' : ''; ?>>Purchase date</option>
+                    <option value="date_recorded" <?php echo $sort_by === 'date_recorded' ? 'selected' : ''; ?>>Date recorded</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="direction" class="form-select" aria-label="Sort direction">
+                    <option value="ASC" <?php echo $sort_direction === 'ASC' ? 'selected' : ''; ?>>Ascending</option>
+                    <option value="DESC" <?php echo $sort_direction === 'DESC' ? 'selected' : ''; ?>>Descending</option>
+                </select>
             </div>
             <div class="col-md-2">
                 <button type="submit" class="btn btn-primary w-100">
