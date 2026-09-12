@@ -68,6 +68,7 @@ CREATE TABLE items (
 CREATE TABLE logbook (
     log_id INT AUTO_INCREMENT PRIMARY KEY,
     item_id INT,
+    return_for_log_id INT NULL,
     action ENUM('Borrowed', 'Used', 'Returned') NOT NULL,
     quantity INT NOT NULL DEFAULT 1,
     borrowed_by VARCHAR(100) NOT NULL,
@@ -77,6 +78,7 @@ CREATE TABLE logbook (
     recorded_by INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (item_id) REFERENCES items(item_id) ON DELETE SET NULL,
+    FOREIGN KEY (return_for_log_id) REFERENCES logbook(log_id) ON DELETE SET NULL,
     FOREIGN KEY (recorded_by) REFERENCES users(user_id) ON DELETE SET NULL
 );
 

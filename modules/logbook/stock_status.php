@@ -13,7 +13,7 @@ if (!$item_id) {
     exit();
 }
 
-$stmt = $conn->prepare("SELECT i.quantity AS total_quantity, COALESCE(SUM(CASE WHEN l.action = 'Borrowed' AND l.date_returned IS NULL THEN l.quantity WHEN l.action = 'Used' THEN l.quantity WHEN l.action = 'Returned' THEN -l.quantity ELSE 0 END), 0) AS allocated_quantity, COALESCE(SUM(CASE WHEN l.action = 'Borrowed' AND l.date_returned IS NULL THEN l.quantity WHEN l.action = 'Returned' THEN -l.quantity ELSE 0 END), 0) AS borrowed_quantity FROM items i LEFT JOIN logbook l ON l.item_id = i.item_id WHERE i.item_id = ? GROUP BY i.item_id, i.quantity");
+$stmt = $conn->prepare("SELECT i.quantity AS total_quantity, COALESCE(SUM(CASE WHEN l.action = 'Borrowed' THEN l.quantity WHEN l.action = 'Used' THEN l.quantity WHEN l.action = 'Returned' THEN -l.quantity ELSE 0 END), 0) AS allocated_quantity, COALESCE(SUM(CASE WHEN l.action = 'Borrowed' THEN l.quantity WHEN l.action = 'Returned' THEN -l.quantity ELSE 0 END), 0) AS borrowed_quantity FROM items i LEFT JOIN logbook l ON l.item_id = i.item_id WHERE i.item_id = ? GROUP BY i.item_id, i.quantity");
 $stmt->bind_param("i", $item_id);
 $stmt->execute();
 $item = $stmt->get_result()->fetch_assoc();

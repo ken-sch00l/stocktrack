@@ -9,7 +9,7 @@ $serviceable     = $conn->query("SELECT COUNT(*) as cnt FROM items WHERE conditi
 $unserviceable   = $conn->query("SELECT COUNT(*) as cnt FROM items WHERE condition_status='Unserviceable'")->fetch_assoc()['cnt'];
 $total_logbook   = $conn->query("SELECT COUNT(*) as cnt FROM logbook")->fetch_assoc()['cnt'];
 $current_role    = $_SESSION['role'];
-$outstanding_qty = $conn->query("SELECT COALESCE(SUM(CASE WHEN action = 'Borrowed' AND date_returned IS NULL THEN quantity WHEN action = 'Returned' THEN -quantity ELSE 0 END), 0) AS cnt FROM logbook")->fetch_assoc()['cnt'];
+$outstanding_qty = $conn->query("SELECT COALESCE(SUM(CASE WHEN action = 'Borrowed' THEN quantity WHEN action = 'Returned' THEN -quantity ELSE 0 END), 0) AS cnt FROM logbook")->fetch_assoc()['cnt'];
 $unread_count    = 0;
 if (hasAnyRole(['admin', 'treasurer'])) {
     $unread_count = $conn->query("SELECT COUNT(*) AS cnt FROM notifications WHERE recipient_user_id = " . (int)$_SESSION['user_id'] . " AND is_read = 0")->fetch_assoc()['cnt'];

@@ -53,7 +53,7 @@ if ($params) {
 }
 $log_stmt->execute();
 $logs = $log_stmt->get_result();
-$outstanding = $conn->query("SELECT l.borrowed_by, COALESCE(SUM(CASE WHEN l.action = 'Borrowed' AND l.date_returned IS NULL THEN l.quantity WHEN l.action = 'Returned' THEN -l.quantity ELSE 0 END), 0) AS outstanding_quantity, GROUP_CONCAT(DISTINCT COALESCE(i.item_name, 'Deleted item') ORDER BY i.item_name SEPARATOR ', ') AS item_names FROM logbook l LEFT JOIN items i ON l.item_id = i.item_id GROUP BY l.borrowed_by HAVING outstanding_quantity > 0 ORDER BY l.borrowed_by ASC");
+$outstanding = $conn->query("SELECT l.borrowed_by, COALESCE(SUM(CASE WHEN l.action = 'Borrowed' THEN l.quantity WHEN l.action = 'Returned' THEN -l.quantity ELSE 0 END), 0) AS outstanding_quantity, GROUP_CONCAT(DISTINCT COALESCE(i.item_name, 'Deleted item') ORDER BY i.item_name SEPARATOR ', ') AS item_names FROM logbook l LEFT JOIN items i ON l.item_id = i.item_id GROUP BY l.borrowed_by HAVING outstanding_quantity > 0 ORDER BY l.borrowed_by ASC");
 ?>
 <?php require_once '../../includes/header.php'; ?>
 <?php require_once '../../includes/sidebar.php'; ?>
