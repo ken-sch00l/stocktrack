@@ -23,7 +23,7 @@ $logs = $logs->get_result();
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h4 class="fw-bold mb-0"><i class="bi bi-eye me-2 text-primary"></i>Item Details</h4>
     <div>
-        <?php if (hasRole('admin')): ?>
+        <?php if (hasAnyRole(['admin', 'super_admin'])): ?>
             <a href="edit.php?id=<?php echo $item['item_id']; ?>" class="btn btn-warning btn-sm me-2">
                 <i class="bi bi-pencil me-1"></i>Edit
             </a>

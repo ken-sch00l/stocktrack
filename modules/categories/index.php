@@ -35,7 +35,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$categories = $conn->query("SELECT c.*, COUNT(i.item_id) as item_count FROM categories c LEFT JOIN items i ON c.category_id = i.category_id GROUP BY c.category_id ORDER BY c.category_name ASC");
+$category_sort = $_GET['sort'] ?? 'name';
+$category_direction = strtoupper($_GET['direction'] ?? 'ASC');
+$category_sort_columns = ['name' => 'c.category_name', 'items' => 'item_count', 'date' => 'c.created_at'];
+$category_sort = array_key_exists($category_sort, $category_sort_columns) ? $category_sort : 'name';
+$category_direction = in_array($category_direction, ['ASC', 'DESC'], true) ? $category_direction : 'ASC';
+$categories = $conn->query("SELECT c.*, COUNT(i.item_id) as item_count FROM categories c LEFT JOIN items i ON c.category_id = i.category_id GROUP BY c.category_id ORDER BY {$category_sort_columns[$category_sort]} $category_direction");
 ?>
 <?php require_once '../../includes/header.php'; ?>
 <?php require_once '../../includes/sidebar.php'; ?>
@@ -50,6 +55,12 @@ $categories = $conn->query("SELECT c.*, COUNT(i.item_id) as item_count FROM cate
 <?php if ($success): ?>
     <div class="alert alert-success alert-dismissible"><?php echo htmlspecialchars($success); ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
 <?php endif; ?>
+
+<form method="GET" class="row g-2 mb-3 align-items-end">
+    <div class="col-md-4"><label class="form-label">Sort categories by</label><select name="sort" class="form-select"><option value="name" <?php echo $category_sort === 'name' ? 'selected' : ''; ?>>Name</option><option value="items" <?php echo $category_sort === 'items' ? 'selected' : ''; ?>>Item count</option><option value="date" <?php echo $category_sort === 'date' ? 'selected' : ''; ?>>Date added</option></select></div>
+    <div class="col-md-4"><label class="form-label">Direction</label><select name="direction" class="form-select"><option value="ASC" <?php echo $category_direction === 'ASC' ? 'selected' : ''; ?>>Ascending</option><option value="DESC" <?php echo $category_direction === 'DESC' ? 'selected' : ''; ?>>Descending</option></select></div>
+    <div class="col-md-4"><button type="submit" class="btn btn-outline-primary">Apply sorting</button></div>
+</form>
 
 <div class="row g-4">
     <div class="col-md-4">

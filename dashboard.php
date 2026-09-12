@@ -38,32 +38,32 @@ $recent = $conn->query("SELECT i.*, c.category_name FROM items i LEFT JOIN categ
 
 <div class="row g-3 mb-4">
     <div class="col-md-3">
-        <div class="card stat-card text-center p-3">
+        <a href="/stocktrack/modules/inventory/index.php" class="card stat-card stat-card-link text-center p-3 h-100">
             <div class="text-primary" style="font-size:2rem;"><i class="bi bi-archive"></i></div>
             <h3 class="fw-bold mb-0"><?php echo $total_items; ?></h3>
             <small class="text-muted">Total Items</small>
-        </div>
+        </a>
     </div>
     <div class="col-md-3">
-        <div class="card stat-card text-center p-3">
+        <a href="/stocktrack/modules/inventory/index.php?condition=Serviceable" class="card stat-card stat-card-link text-center p-3 h-100">
             <div class="text-success" style="font-size:2rem;"><i class="bi bi-check-circle"></i></div>
             <h3 class="fw-bold mb-0"><?php echo $serviceable; ?></h3>
             <small class="text-muted">Serviceable</small>
-        </div>
+        </a>
     </div>
     <div class="col-md-3">
-        <div class="card stat-card text-center p-3">
+        <a href="/stocktrack/modules/inventory/index.php?condition=Unserviceable" class="card stat-card stat-card-link text-center p-3 h-100">
             <div class="text-danger" style="font-size:2rem;"><i class="bi bi-x-circle"></i></div>
             <h3 class="fw-bold mb-0"><?php echo $unserviceable; ?></h3>
             <small class="text-muted">Unserviceable</small>
-        </div>
+        </a>
     </div>
     <div class="col-md-3">
-        <div class="card stat-card text-center p-3">
+        <a href="/stocktrack/modules/logbook/index.php" class="card stat-card stat-card-link text-center p-3 h-100">
             <div class="text-warning" style="font-size:2rem;"><i class="bi bi-journal-text"></i></div>
             <h3 class="fw-bold mb-0"><?php echo $total_logbook; ?></h3>
             <small class="text-muted">Logbook Entries</small>
-        </div>
+        </a>
     </div>
 </div>
 

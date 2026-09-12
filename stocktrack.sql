@@ -12,7 +12,7 @@ CREATE TABLE users (
     username VARCHAR(50) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     must_change_password TINYINT(1) NOT NULL DEFAULT 0,
-    role ENUM('admin', 'secretary', 'treasurer', 'committee') NOT NULL,
+    role ENUM('super_admin', 'admin', 'secretary', 'treasurer', 'committee') NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

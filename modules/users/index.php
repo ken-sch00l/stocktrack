@@ -4,7 +4,13 @@ requireLogin();
 requirePermission('manage_users');
 require_once '../../includes/db.php';
 
-$users = $conn->query("SELECT * FROM users ORDER BY full_name ASC");
+$user_sort = $_GET['sort'] ?? 'name';
+$user_direction = strtoupper($_GET['direction'] ?? 'ASC');
+$user_sort_columns = ['name' => 'full_name', 'username' => 'username', 'role' => 'role', 'date' => 'created_at'];
+$user_sort = array_key_exists($user_sort, $user_sort_columns) ? $user_sort : 'name';
+$user_direction = in_array($user_direction, ['ASC', 'DESC'], true) ? $user_direction : 'ASC';
+$user_visibility = hasRole('super_admin') ? '' : "WHERE role <> 'super_admin'";
+$users = $conn->query("SELECT * FROM users $user_visibility ORDER BY {$user_sort_columns[$user_sort]} $user_direction");
 ?>
 <?php require_once '../../includes/header.php'; ?>
 <?php require_once '../../includes/sidebar.php'; ?>
@@ -22,6 +28,12 @@ $users = $conn->query("SELECT * FROM users ORDER BY full_name ASC");
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 <?php endif; ?>
+
+<form method="GET" class="row g-2 mb-3 align-items-end">
+    <div class="col-md-4"><label class="form-label">Sort users by</label><select name="sort" class="form-select"><option value="name" <?php echo $user_sort === 'name' ? 'selected' : ''; ?>>Name</option><option value="username" <?php echo $user_sort === 'username' ? 'selected' : ''; ?>>Username</option><option value="role" <?php echo $user_sort === 'role' ? 'selected' : ''; ?>>Role</option><option value="date" <?php echo $user_sort === 'date' ? 'selected' : ''; ?>>Date added</option></select></div>
+    <div class="col-md-4"><label class="form-label">Direction</label><select name="direction" class="form-select"><option value="ASC" <?php echo $user_direction === 'ASC' ? 'selected' : ''; ?>>Ascending</option><option value="DESC" <?php echo $user_direction === 'DESC' ? 'selected' : ''; ?>>Descending</option></select></div>
+    <div class="col-md-4"><button type="submit" class="btn btn-outline-primary">Apply sorting</button></div>
+</form>
 
 <?php if (isset($_SESSION['temporary_user_credentials'])): ?>
     <div class="alert alert-warning">
@@ -52,7 +64,12 @@ $users = $conn->query("SELECT * FROM users ORDER BY full_name ASC");
                     <td><span class="badge bg-primary"><?php echo ucfirst($user['role']); ?></span></td>
                     <td><?php echo date('M d, Y', strtotime($user['created_at'])); ?></td>
                     <td>
-                        <?php if ($user['username'] !== 'admin'): ?>
+                        <?php if ($user['role'] !== 'super_admin' || hasRole('super_admin')): ?>
+                        <a href="edit.php?id=<?php echo (int)$user['user_id']; ?>" class="btn btn-sm btn-outline-primary" title="Edit account">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <?php endif; ?>
+                        <?php if ($user['username'] !== 'admin' && $user['user_id'] != $_SESSION['user_id'] && ($user['role'] !== 'super_admin' || hasRole('super_admin'))): ?>
                         <form method="POST" action="delete.php" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this user?');">
                             <?php csrf_field(); ?>
                             <input type="hidden" name="id" value="<?php echo $user['user_id']; ?>">
@@ -60,7 +77,7 @@ $users = $conn->query("SELECT * FROM users ORDER BY full_name ASC");
                                 <i class="bi bi-trash"></i>
                             </button>
                         </form>
-                        <?php else: ?>
+                        <?php elseif ($user['role'] === 'super_admin' || $user['user_id'] == $_SESSION['user_id']): ?>
                         <span class="text-muted small">Protected</span>
                         <?php endif; ?>
                     </td>

@@ -49,6 +49,19 @@ body {
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
+.stat-card-link {
+    color: inherit;
+    text-decoration: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.stat-card-link:hover,
+.stat-card-link:focus-visible {
+    color: inherit;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 14px rgba(0,0,0,0.14);
+}
+
 /* Forms */
 .form-label {
     font-weight: 500;

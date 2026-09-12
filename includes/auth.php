@@ -48,14 +48,14 @@ function hasAnyRole(array $roles) {
 
 function requirePermission($permission) {
     $permissions = [
-        'view' => ['admin', 'secretary', 'treasurer', 'committee'],
-        'add' => ['admin', 'secretary', 'treasurer', 'committee'],
-        'edit' => ['admin'],
-        'delete' => ['admin'],
-        'manage_users' => ['admin'],
-        'manage_categories' => ['admin'],
-        'view_audit' => ['admin'],
-        'view_notifications' => ['admin', 'treasurer']
+        'view' => ['admin', 'super_admin', 'secretary', 'treasurer', 'committee'],
+        'add' => ['admin', 'super_admin', 'secretary', 'treasurer', 'committee'],
+        'edit' => ['admin', 'super_admin'],
+        'delete' => ['admin', 'super_admin'],
+        'manage_users' => ['admin', 'super_admin'],
+        'manage_categories' => ['admin', 'super_admin'],
+        'view_audit' => ['admin', 'super_admin'],
+        'view_notifications' => ['admin', 'super_admin', 'treasurer']
     ];
 
     if (!isset($permissions[$permission]) || !hasAnyRole($permissions[$permission])) {
