@@ -74,7 +74,7 @@ $outstanding = $conn->query("SELECT l.borrowed_by, COALESCE(SUM(CASE WHEN l.acti
     </div>
 <?php endif; ?>
 
-<div class="card border-0 shadow-sm mb-3">
+<div class="card border-0 shadow-sm mb-3 filter-toolbar">
     <div class="card-body">
         <form method="GET" class="row g-2 align-items-end">
             <div class="col-md-3">

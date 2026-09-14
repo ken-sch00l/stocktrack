@@ -46,6 +46,7 @@ CREATE TABLE categories (
 CREATE TABLE items (
     item_id INT AUTO_INCREMENT PRIMARY KEY,
     tracking_number VARCHAR(50) NOT NULL UNIQUE,
+    property_ics_number VARCHAR(100),
     serial_number VARCHAR(100),
     item_name VARCHAR(150) NOT NULL,
     category_id INT,
@@ -53,6 +54,14 @@ CREATE TABLE items (
     quantity INT NOT NULL DEFAULT 1,
     unit VARCHAR(50),
     date_purchased DATE,
+    date_acquired DATE,
+    unit_measure VARCHAR(50),
+    unit_value DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+    balance_per_card INT NOT NULL DEFAULT 1,
+    on_hand_per_count INT NOT NULL DEFAULT 1,
+    shortage_overage_qty INT NOT NULL DEFAULT 0,
+    shortage_overage_value DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+    remarks TEXT,
     person_in_charge VARCHAR(100),
     position VARCHAR(100),
     last_inventory_date DATE,
@@ -97,7 +106,7 @@ CREATE TABLE notifications (
 -- Reports log table
 CREATE TABLE reports_log (
     report_id INT AUTO_INCREMENT PRIMARY KEY,
-    report_type ENUM('RIS', 'ICS', 'PAR') NOT NULL,
+    report_type ENUM('RIS', 'ICS', 'RIPE', 'PAR') NOT NULL,
     period_type ENUM('Weekly', 'Monthly', 'Yearly') NOT NULL,
     period_value VARCHAR(50),
     generated_by INT,

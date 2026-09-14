@@ -1,17 +1,167 @@
+:root {
+    --ink: #172b4d;
+    --muted: #64748b;
+    --line: #dce5ef;
+    --canvas: #f4f7fb;
+    --surface: #ffffff;
+    --navy: #123b6d;
+    --blue: #1769aa;
+    --teal: #0f766e;
+    --warm: #f59e0b;
+    --danger: #b42318;
+    --radius: 10px;
+    --shadow: 0 8px 24px rgba(23, 43, 77, 0.08);
+    --table-sticky-top: 56px;
+}
+
 /* StockTrack - Barangay Puguis */
 body {
     font-family: 'Segoe UI', sans-serif;
-    background-color: #f8f9fa;
+    background: var(--canvas);
+    color: var(--ink);
+    scroll-behavior: smooth;
+}
+
+.app-navbar {
+    min-height: 56px;
+    background: var(--navy) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+}
+
+.app-navbar .navbar-brand {
+    letter-spacing: 0.01em;
+}
+
+.app-navbar .navbar-text {
+    color: rgba(255, 255, 255, 0.82) !important;
+    font-size: 0.88rem;
+}
+
+.app-sidebar,
+.sidebar {
+    position: fixed;
+    left: 0;
+    top: 56px;
+    z-index: 1020;
+    width: 230px;
+    height: calc(100vh - 56px);
+    max-height: calc(100vh - 56px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.35) transparent;
+    background: #102a43 !important;
+    box-shadow: 8px 0 24px rgba(16, 42, 67, 0.08);
+}
+
+.content {
+    width: calc(100% - 230px) !important;
+    margin-left: 230px;
+    min-height: calc(100vh - 56px);
+    padding: 1.5rem !important;
+}
+
+.inventory-toolbar {
+    position: sticky;
+    top: 104px;
+    z-index: 1000;
+    background: #fff;
+}
+
+.filter-toolbar {
+    position: sticky;
+    top: 104px;
+    z-index: 1000;
+    background: var(--surface);
+}
+
+form.filter-toolbar {
+    padding: 1rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: var(--shadow);
+}
+
+.inventory-toolbar .card-body {
+    background: #fff;
+    border-radius: inherit;
+}
+
+.inventory-table-card .table-responsive {
+    overflow-x: visible;
+}
+
+.content .table thead th {
+    position: sticky;
+    top: var(--table-sticky-top);
+    z-index: 900;
+    background-color: #074187;
+}
+
+.inventory-table-card .table thead tr:nth-child(2) th {
+    top: calc(var(--table-sticky-top) + 35px);
+}
+
+.content .table-responsive {
+    overflow-x: visible;
+}
+
+.page-title-bar {
+    position: sticky;
+    top: 56px;
+    z-index: 1001;
+    min-height: 48px;
+    margin-left: -0.25rem;
+    margin-right: -0.25rem;
+    padding: 0.5rem 0.25rem;
+    background: #f8f9fa;
+}
+
+.content > h4:first-child,
+.content > .d-flex:first-child:not(.page-title-bar) {
+    position: sticky;
+    top: 56px;
+    z-index: 1001;
+    min-height: 48px;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    background: #f8f9fa;
+}
+
+.inventory-table-card .table thead th {
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.35);
+    border-radius: 6px;
+}
+
+.sidebar .nav-link {
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.78) !important;
+    font-size: 0.9rem;
+    padding: 0.68rem 0.78rem;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
 
 .sidebar .nav-link:hover {
-    background-color: rgba(255,255,255,0.1);
-    border-radius: 6px;
+    background-color: rgba(255, 255, 255, 0.09);
+    color: #fff !important;
+    transform: translateX(2px);
 }
 
 .sidebar .nav-link.active {
-    background-color: rgba(255,255,255,0.2);
-    border-radius: 6px;
+    background: #1d5f95;
+    color: #fff !important;
+    box-shadow: inset 3px 0 0 #7dd3fc;
 }
 
 /* Condition badges */
@@ -31,15 +181,82 @@ body {
     font-size: 0.8rem;
 }
 
+/* Shared surfaces */
+.content h4 {
+    color: var(--ink);
+    font-size: 1.3rem;
+    letter-spacing: -0.01em;
+}
+
+.content .card,
+.content .alert,
+.content .list-group {
+    border: 1px solid var(--line) !important;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+.content .card-header,
+.content .card-footer {
+    border-color: var(--line);
+    background: #fbfdff !important;
+}
+
+.content .card-header {
+    color: var(--ink);
+    font-weight: 700;
+}
+
+.content .btn {
+    border-radius: 7px;
+    font-weight: 600;
+}
+
+.content .form-control,
+.content .form-select {
+    min-height: 42px;
+    border-color: #cbd7e5;
+    border-radius: 7px;
+    color: var(--ink);
+}
+
+.content .form-control:focus,
+.content .form-select:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(23, 105, 170, 0.12);
+}
+
+.content .form-label {
+    color: #36516d;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
 /* Tables */
+.table {
+    margin-bottom: 0;
+    --bs-table-bg: transparent;
+}
+
 .table th {
-    background-color: #074187;
+    background-color: #104b8e;
     color: white;
-    font-weight: 500;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
 }
 
 .table-hover tbody tr:hover {
-    background-color: #e8f0fe;
+    background-color: #edf5fb;
+}
+
+.table tbody td {
+    border-color: #e6edf4;
+    color: #33485c;
+    vertical-align: middle;
 }
 
 /* Cards */
@@ -65,6 +282,177 @@ body {
 /* Forms */
 .form-label {
     font-weight: 500;
+}
+
+/* Inventory entry and RIPE presentation */
+.paper-entry-card {
+    border: 1px solid #dbe4ef !important;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(24, 55, 88, 0.08);
+}
+
+.paper-entry-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.paper-entry-field {
+    min-width: 0;
+}
+
+.paper-entry-field.span-1 { grid-column: span 1; }
+.paper-entry-field.span-2 { grid-column: span 2; }
+.paper-entry-field.span-3 { grid-column: span 3; }
+
+.paper-entry-label {
+    display: block;
+    margin-bottom: 0.4rem;
+    color: #36516d;
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.paper-entry-input {
+    width: 100%;
+    min-height: 42px;
+    padding: 0.6rem 0.7rem;
+    border: 1px solid #cbd7e5;
+    border-radius: 7px;
+    background: #fff;
+    color: #1f2d3d;
+    font-size: 0.9rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.paper-entry-input:focus {
+    border-color: #1769aa;
+    box-shadow: 0 0 0 3px rgba(23, 105, 170, 0.12);
+    outline: 0;
+}
+
+.paper-entry-input[readonly] {
+    background: #f1f5f9;
+    color: #5c7085;
+}
+
+.variance-field {
+    padding: 0.65rem;
+    border: 1px solid #d9e3ee;
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.variance-field .paper-entry-label {
+    min-height: 2.1rem;
+    margin-bottom: 0.35rem;
+}
+
+.paper-entry-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid #e6edf4;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.table-responsive > .table {
+    min-width: 1180px;
+}
+
+.table thead th {
+    white-space: nowrap;
+    font-size: 0.75rem;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.table tbody td {
+    vertical-align: middle;
+    color: #33485c;
+    font-size: 0.88rem;
+}
+
+.inventory-variance-short {
+    color: #b42318;
+    font-weight: 700;
+}
+
+.inventory-variance-over {
+    color: #087443;
+    font-weight: 700;
+}
+
+@media (max-width: 992px) {
+    .paper-entry-field.span-1,
+    .paper-entry-field.span-2 {
+        grid-column: span 3;
+    }
+}
+
+@media (max-width: 576px) {
+    .paper-entry-grid {
+        grid-template-columns: 1fr;
+        gap: 0.85rem;
+    }
+
+    .paper-entry-field.span-1,
+    .paper-entry-field.span-2,
+    .paper-entry-field.span-3 {
+        grid-column: span 1;
+    }
+
+    .paper-entry-card .card-body {
+        padding: 1rem;
+    }
+
+    .paper-entry-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .paper-entry-actions .btn {
+        width: 100%;
+        margin-left: 0 !important;
+    }
+}
+
+@media (max-width: 767px) {
+    .sidebar {
+        position: static;
+        width: 230px;
+        height: auto;
+        max-height: none;
+        overflow-y: visible;
+    }
+
+    .content {
+        width: 100% !important;
+        margin-left: 0;
+    }
+
+    .inventory-toolbar,
+    .filter-toolbar,
+    .page-title-bar {
+        position: static;
+    }
+
+    .inventory-table-card .table-responsive {
+        overflow-x: auto;
+    }
+
+    .content .table-responsive {
+        overflow-x: auto;
+    }
+
 }
 
 /* Print styles */

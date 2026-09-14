@@ -5,7 +5,7 @@ requirePermission('add');
 require_once '../../includes/db.php';
 
 $type = isset($_GET['type']) ? $_GET['type'] : 'ICS';
-$allowed_types = ['RIS', 'ICS', 'PAR'];
+$allowed_types = ['RIS', 'ICS', 'RIPE'];
 if (!in_array($type, $allowed_types)) $type = 'ICS';
 
 $period_type = isset($_POST['period_type']) ? $_POST['period_type'] : '';
@@ -67,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $period_type) {
     </a>
 </div>
 
-<div class="card border-0 shadow-sm mb-4 no-print">
+<div class="card border-0 shadow-sm mb-4 no-print filter-toolbar">
     <div class="card-body">
         <form method="POST">
             <?php csrf_field(); ?>
@@ -115,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $period_type) {
             <?php elseif ($type === 'ICS'): ?>
                 <h5 class="fw-bold">INVENTORY CUSTODIAN SLIP (ICS)</h5>
             <?php else: ?>
-                <h5 class="fw-bold">PROPERTY ACKNOWLEDGEMENT RECEIPT (PAR)</h5>
+                <h5 class="fw-bold">REPORT ON INVENTORY OF PROPERTY AND EQUIPMENT (RIPE)</h5>
             <?php endif; ?>
             <p class="mb-0">
                 Period: <?php echo $period_type; ?> 
@@ -233,58 +233,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $period_type) {
         </div>
 
         <?php else: ?>
-        <!-- PAR FORMAT -->
+        <!-- RIPE FORMAT -->
         <table class="table table-bordered">
             <thead>
                 <tr class="text-center">
-                    <th>Qty</th>
-                    <th>Unit</th>
-                    <th>Description</th>
-                    <th>Tracking No.</th>
-                    <th>Serial No.</th>
-                    <th>Date Purchased</th>
-                    <th>Condition</th>
-                    <th>Person in Charge</th>
-                    <th>Position</th>
+                    <th rowspan="2">Article</th>
+                    <th rowspan="2">Description</th>
+                    <th rowspan="2">Property / Inventory No.</th>
+                    <th rowspan="2">Date Acquired</th>
+                    <th rowspan="2">Unit of Measure</th>
+                    <th rowspan="2">Unit Value</th>
+                    <th rowspan="2">Balance per Card</th>
+                    <th rowspan="2">On Hand per Count</th>
+                    <th colspan="2">Shortage / Overage</th>
+                    <th rowspan="2">Remarks</th>
+                </tr>
+                <tr class="text-center">
+                    <th>Quantity</th>
+                    <th>Value</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (count($items) > 0): ?>
                     <?php foreach ($items as $row): ?>
                     <tr>
-                        <td class="text-center"><?php echo $row['quantity']; ?></td>
-                        <td><?php echo htmlspecialchars($row['unit'] ?? ''); ?></td>
+                        <td><?php echo htmlspecialchars($row['category_name'] ?? 'N/A'); ?></td>
                         <td><?php echo htmlspecialchars($row['item_name']); ?></td>
-                        <td><?php echo htmlspecialchars($row['tracking_number']); ?></td>
-                        <td><?php echo htmlspecialchars($row['serial_number'] ?? 'N/A'); ?></td>
-                        <td><?php echo $row['date_purchased'] ? date('m/d/Y', strtotime($row['date_purchased'])) : 'N/A'; ?></td>
-                        <td>
-                            <?php if ($row['condition_status'] === 'Serviceable'): ?>
-                                <span style="color:green; font-weight:bold;">S</span>
-                            <?php else: ?>
-                                <span style="color:red; font-weight:bold;">U</span>
-                            <?php endif; ?>
-                        </td>
-                        <td><?php echo htmlspecialchars($row['person_in_charge'] ?? 'N/A'); ?></td>
-                        <td><?php echo htmlspecialchars($row['position'] ?? 'N/A'); ?></td>
+                        <td><?php echo htmlspecialchars($row['property_ics_number'] ?: $row['tracking_number']); ?></td>
+                        <td><?php echo $row['date_acquired'] ? date('m/d/Y', strtotime($row['date_acquired'])) : 'N/A'; ?></td>
+                        <td class="text-center"><?php echo htmlspecialchars($row['unit_measure'] ?: ($row['unit'] ?? '')); ?></td>
+                        <td class="text-end"><?php echo number_format((float)($row['unit_value'] ?? 0), 2); ?></td>
+                        <td class="text-center"><?php echo (int)($row['balance_per_card'] ?? $row['quantity']); ?></td>
+                        <td class="text-center"><?php echo (int)($row['on_hand_per_count'] ?? $row['quantity']); ?></td>
+                        <td class="text-center"><?php echo (int)($row['shortage_overage_qty'] ?? 0); ?></td>
+                        <td class="text-end"><?php echo number_format((float)($row['shortage_overage_value'] ?? 0), 2); ?></td>
+                        <td><?php echo htmlspecialchars($row['remarks'] ?: ($row['notes'] ?: $row['condition_status'])); ?></td>
                     </tr>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <tr><td colspan="9" class="text-center text-muted py-3">No items found for selected period.</td></tr>
+                    <tr><td colspan="11" class="text-center text-muted py-3">No items found for selected period.</td></tr>
                 <?php endif; ?>
             </tbody>
         </table>
         <div class="row mt-4">
             <div class="col-md-6 text-center">
                 <div style="border-top:1px solid #000; margin-top:40px; padding-top:5px;">
-                    <strong>Received from:</strong><br>
-                    Barangay Treasurer / Property Custodian
+                    <strong>Prepared by:</strong><br>
+                    Barangay Record Keeper
                 </div>
             </div>
             <div class="col-md-6 text-center">
                 <div style="border-top:1px solid #000; margin-top:40px; padding-top:5px;">
-                    <strong>Received by:</strong><br>
-                    Signature over Printed Name / Position
+                    <strong>Certified correct by:</strong><br>
+                    Barangay Treasurer / Property Custodian
                 </div>
             </div>
         </div>

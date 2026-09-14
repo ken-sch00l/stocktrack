@@ -46,24 +46,40 @@ $logs = $logs->get_result();
     <div class="card-body">
         <div class="row g-3">
             <div class="col-md-4">
-                <small class="text-muted d-block">Tracking Number</small>
-                <code><?php echo htmlspecialchars($item['tracking_number']); ?></code>
+                <small class="text-muted d-block">Property / Inventory No.</small>
+                <code><?php echo htmlspecialchars($item['property_ics_number'] ?: $item['tracking_number']); ?></code>
             </div>
             <div class="col-md-4">
                 <small class="text-muted d-block">Serial Number</small>
                 <?php echo htmlspecialchars($item['serial_number'] ?? 'N/A'); ?>
             </div>
             <div class="col-md-4">
-                <small class="text-muted d-block">Category</small>
+                <small class="text-muted d-block">Article</small>
                 <?php echo htmlspecialchars($item['category_name'] ?? 'N/A'); ?>
             </div>
             <div class="col-md-4">
-                <small class="text-muted d-block">Quantity</small>
-                <?php echo $item['quantity'] . ' ' . ($item['unit'] ?? ''); ?>
+                <small class="text-muted d-block">Unit of Measure</small>
+                <?php echo htmlspecialchars($item['unit_measure'] ?: ($item['unit'] ?? 'N/A')); ?>
             </div>
             <div class="col-md-4">
-                <small class="text-muted d-block">Date Purchased</small>
-                <?php echo $item['date_purchased'] ? date('F d, Y', strtotime($item['date_purchased'])) : 'N/A'; ?>
+                <small class="text-muted d-block">Date Acquired</small>
+                <?php echo $item['date_acquired'] ? date('F d, Y', strtotime($item['date_acquired'])) : 'N/A'; ?>
+            </div>
+            <div class="col-md-4">
+                <small class="text-muted d-block">Unit Value</small>
+                <?php echo number_format((float)($item['unit_value'] ?? 0), 2); ?>
+            </div>
+            <div class="col-md-4">
+                <small class="text-muted d-block">Balance per Card</small>
+                <?php echo (int)($item['balance_per_card'] ?? $item['quantity']); ?>
+            </div>
+            <div class="col-md-4">
+                <small class="text-muted d-block">On Hand per Count</small>
+                <?php echo (int)($item['on_hand_per_count'] ?? $item['quantity']); ?>
+            </div>
+            <div class="col-md-4">
+                <small class="text-muted d-block">Shortage / Overage</small>
+                <?php echo (int)($item['shortage_overage_qty'] ?? 0); ?> / <?php echo number_format((float)($item['shortage_overage_value'] ?? 0), 2); ?>
             </div>
             <div class="col-md-4">
                 <small class="text-muted d-block">Last Inventory Date</small>

@@ -10,7 +10,7 @@
     <link href="/stocktrack/assets/css/style.css" rel="stylesheet">
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary px-3">
+<nav class="navbar app-navbar navbar-expand-lg navbar-dark px-3">
     <a class="navbar-brand fw-bold" href="/stocktrack/dashboard.php">
         <i class="bi bi-box-seam me-2"></i>StockTrack
     </a>

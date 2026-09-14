@@ -42,7 +42,7 @@ $audit_stats = $conn->query("SELECT COUNT(*) AS total_count, SUM(action IN ('log
     <div class="col-md-3"><a href="?filter=users" class="card stat-card stat-card-link text-center p-3 h-100"><div class="text-warning fs-2"><i class="bi bi-people"></i></div><h3 class="fw-bold mb-0"><?php echo (int)$audit_stats['user_count']; ?></h3><small class="text-muted">User/admin activity</small></a></div>
     <div class="col-md-3"><a href="?filter=security" class="card stat-card stat-card-link text-center p-3 h-100"><div class="text-danger fs-2"><i class="bi bi-shield-exclamation"></i></div><h3 class="fw-bold mb-0"><?php echo (int)$audit_stats['security_count']; ?></h3><small class="text-muted">Security activity</small></a></div>
 </div>
-<div class="card border-0 shadow-sm mb-3">
+<div class="card border-0 shadow-sm mb-3 filter-toolbar">
     <div class="card-body">
         <form method="GET" class="row g-2 align-items-end">
             <input type="hidden" name="filter" value="<?php echo htmlspecialchars($filter); ?>">

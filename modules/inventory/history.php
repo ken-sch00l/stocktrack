@@ -71,7 +71,7 @@ $unserv = $unserviceable_stmt->get_result()->fetch_assoc()['cnt'];
     <h4 class="fw-bold mb-0"><i class="bi bi-clock-history me-2 text-primary"></i>Inventory History</h4>
 </div>
 
-<div class="card border-0 shadow-sm mb-3 no-print">
+<div class="card border-0 shadow-sm mb-3 no-print filter-toolbar">
     <div class="card-body">
         <form method="GET" class="row g-2 align-items-end">
             <div class="col-md-3">

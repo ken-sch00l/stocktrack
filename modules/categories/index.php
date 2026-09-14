@@ -56,7 +56,7 @@ $categories = $conn->query("SELECT c.*, COUNT(i.item_id) as item_count FROM cate
     <div class="alert alert-success alert-dismissible"><?php echo htmlspecialchars($success); ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
 <?php endif; ?>
 
-<form method="GET" class="row g-2 mb-3 align-items-end">
+<form method="GET" class="row g-2 mb-3 align-items-end filter-toolbar">
     <div class="col-md-4"><label class="form-label">Sort categories by</label><select name="sort" class="form-select"><option value="name" <?php echo $category_sort === 'name' ? 'selected' : ''; ?>>Name</option><option value="items" <?php echo $category_sort === 'items' ? 'selected' : ''; ?>>Item count</option><option value="date" <?php echo $category_sort === 'date' ? 'selected' : ''; ?>>Date added</option></select></div>
     <div class="col-md-4"><label class="form-label">Direction</label><select name="direction" class="form-select"><option value="ASC" <?php echo $category_direction === 'ASC' ? 'selected' : ''; ?>>Ascending</option><option value="DESC" <?php echo $category_direction === 'DESC' ? 'selected' : ''; ?>>Descending</option></select></div>
     <div class="col-md-4"><button type="submit" class="btn btn-outline-primary">Apply sorting</button></div>

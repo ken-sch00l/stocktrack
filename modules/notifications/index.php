@@ -53,7 +53,7 @@ $notification_stats = $notification_stats->get_result()->fetch_assoc();
     <div class="col-md-3"><a href="?filter=borrowed" class="card stat-card stat-card-link text-center p-3 h-100"><div class="text-danger fs-2"><i class="bi bi-box-arrow-right"></i></div><h3 class="fw-bold mb-0"><?php echo (int)($notification_stats['borrowed_count'] ?? 0); ?></h3><small class="text-muted">Borrowed alerts</small></a></div>
     <div class="col-md-3"><a href="?filter=returned" class="card stat-card stat-card-link text-center p-3 h-100"><div class="text-success fs-2"><i class="bi bi-box-arrow-in-left"></i></div><h3 class="fw-bold mb-0"><?php echo (int)($notification_stats['returned_count'] ?? 0); ?></h3><small class="text-muted">Returned alerts</small></a></div>
 </div>
-<div class="card border-0 shadow-sm mb-3">
+<div class="card border-0 shadow-sm mb-3 filter-toolbar">
     <div class="card-body">
         <form method="GET" class="row g-2 align-items-end">
             <input type="hidden" name="filter" value="<?php echo htmlspecialchars($filter); ?>">

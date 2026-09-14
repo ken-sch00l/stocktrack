@@ -76,7 +76,7 @@ $categories = $conn->query("SELECT * FROM categories ORDER BY category_name ASC"
 <?php require_once '../../includes/header.php'; ?>
 <?php require_once '../../includes/sidebar.php'; ?>
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-4 page-title-bar">
     <h4 class="fw-bold mb-0"><i class="bi bi-archive me-2 text-primary"></i>Inventory</h4>
     <?php if (hasAnyRole(['admin', 'secretary', 'treasurer', 'committee'])): ?>
         <a href="add.php" class="btn btn-primary">
@@ -92,7 +92,7 @@ $categories = $conn->query("SELECT * FROM categories ORDER BY category_name ASC"
     </div>
 <?php endif; ?>
 
-<div class="card border-0 shadow-sm mb-3">
+<div class="card border-0 shadow-sm mb-3 filter-toolbar inventory-toolbar">
     <div class="card-body">
         <form method="GET" class="row g-2">
             <div class="col-md-5">
@@ -141,38 +141,44 @@ $categories = $conn->query("SELECT * FROM categories ORDER BY category_name ASC"
     </div>
 </div>
 
-<div class="card border-0 shadow-sm">
+<div class="card border-0 shadow-sm inventory-table-card">
     <div class="card-body p-0">
+        <div class="table-responsive">
         <table class="table table-hover mb-0">
             <thead>
                 <tr>
-                    <th>Tracking No.</th>
-                    <th>Item Name</th>
-                    <th>Category</th>
-                    <th>Condition</th>
-                    <th>Qty</th>
-                    <th>Date Purchased</th>
-                    <th>Person in Charge</th>
-                    <th>Actions</th>
+                    <th rowspan="2">Article</th>
+                    <th rowspan="2">Description</th>
+                    <th rowspan="2">Property / Inventory No.</th>
+                    <th rowspan="2">Date Acquired</th>
+                    <th rowspan="2">Unit</th>
+                    <th rowspan="2">Unit Value</th>
+                    <th rowspan="2">Balance</th>
+                    <th rowspan="2">On Hand</th>
+                    <th colspan="2" class="text-center">Shortage / Overage</th>
+                    <th rowspan="2">Remarks</th>
+                    <th rowspan="2">Actions</th>
+                </tr>
+                <tr>
+                    <th>Quantity</th>
+                    <th>Value</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if ($items->num_rows > 0): ?>
                     <?php while($row = $items->fetch_assoc()): ?>
                     <tr>
-                        <td><code><?php echo htmlspecialchars($row['tracking_number']); ?></code></td>
-                        <td><?php echo htmlspecialchars($row['item_name']); ?></td>
                         <td><small><?php echo htmlspecialchars($row['category_name'] ?? 'N/A'); ?></small></td>
-                        <td>
-                            <?php if ($row['condition_status'] === 'Serviceable'): ?>
-                                <span class="badge-serviceable">Serviceable</span>
-                            <?php else: ?>
-                                <span class="badge-unserviceable">Unserviceable</span>
-                            <?php endif; ?>
-                        </td>
-                        <td><?php echo $row['quantity']; ?></td>
-                        <td><?php echo $row['date_purchased'] ? date('M d, Y', strtotime($row['date_purchased'])) : 'N/A'; ?></td>
-                        <td><?php echo htmlspecialchars($row['person_in_charge'] ?? 'N/A'); ?></td>
+                        <td><?php echo htmlspecialchars($row['item_name']); ?></td>
+                        <td><code><?php echo htmlspecialchars($row['property_ics_number'] ?: $row['tracking_number']); ?></code></td>
+                        <td><?php echo $row['date_acquired'] ? date('M d, Y', strtotime($row['date_acquired'])) : 'N/A'; ?></td>
+                        <td><?php echo htmlspecialchars($row['unit_measure'] ?: ($row['unit'] ?? '')); ?></td>
+                        <td><?php echo number_format((float)($row['unit_value'] ?? 0), 2); ?></td>
+                        <td><?php echo (int)($row['balance_per_card'] ?? $row['quantity']); ?></td>
+                        <td><?php echo (int)($row['on_hand_per_count'] ?? $row['quantity']); ?></td>
+                        <td><?php echo (int)($row['shortage_overage_qty'] ?? 0); ?></td>
+                        <td><?php echo number_format((float)($row['shortage_overage_value'] ?? 0), 2); ?></td>
+                        <td><?php echo htmlspecialchars($row['remarks'] ?: ($row['notes'] ?: $row['condition_status'])); ?></td>
                         <td>
                             <a href="view.php?id=<?php echo $row['item_id']; ?>" class="btn btn-sm btn-outline-primary" title="View">
                                 <i class="bi bi-eye"></i>
@@ -193,10 +199,11 @@ $categories = $conn->query("SELECT * FROM categories ORDER BY category_name ASC"
                     </tr>
                     <?php endwhile; ?>
                 <?php else: ?>
-                    <tr><td colspan="8" class="text-center text-muted py-4">No items found.</td></tr>
+                    <tr><td colspan="12" class="text-center text-muted py-4">No items found.</td></tr>
                 <?php endif; ?>
             </tbody>
         </table>
+        </div>
     </div>
     <?php if ($total_items > 0): ?>
     <div class="card-footer bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">

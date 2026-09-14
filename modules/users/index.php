@@ -29,7 +29,7 @@ $users = $conn->query("SELECT * FROM users $user_visibility ORDER BY {$user_sort
     </div>
 <?php endif; ?>
 
-<form method="GET" class="row g-2 mb-3 align-items-end">
+<form method="GET" class="row g-2 mb-3 align-items-end filter-toolbar">
     <div class="col-md-4"><label class="form-label">Sort users by</label><select name="sort" class="form-select"><option value="name" <?php echo $user_sort === 'name' ? 'selected' : ''; ?>>Name</option><option value="username" <?php echo $user_sort === 'username' ? 'selected' : ''; ?>>Username</option><option value="role" <?php echo $user_sort === 'role' ? 'selected' : ''; ?>>Role</option><option value="date" <?php echo $user_sort === 'date' ? 'selected' : ''; ?>>Date added</option></select></div>
     <div class="col-md-4"><label class="form-label">Direction</label><select name="direction" class="form-select"><option value="ASC" <?php echo $user_direction === 'ASC' ? 'selected' : ''; ?>>Ascending</option><option value="DESC" <?php echo $user_direction === 'DESC' ? 'selected' : ''; ?>>Descending</option></select></div>
     <div class="col-md-4"><button type="submit" class="btn btn-outline-primary">Apply sorting</button></div>
