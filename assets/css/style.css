@@ -1,14 +1,10 @@
 :root {
     --ink: #172b4d;
-    --muted: #64748b;
     --line: #dce5ef;
     --canvas: #f4f7fb;
     --surface: #ffffff;
     --navy: #123b6d;
     --blue: #1769aa;
-    --teal: #0f766e;
-    --warm: #f59e0b;
-    --danger: #b42318;
     --radius: 10px;
     --shadow: 0 8px 24px rgba(23, 43, 77, 0.08);
     --table-sticky-top: 56px;
@@ -379,16 +375,6 @@ form.filter-toolbar {
     vertical-align: middle;
     color: #33485c;
     font-size: 0.88rem;
-}
-
-.inventory-variance-short {
-    color: #b42318;
-    font-weight: 700;
-}
-
-.inventory-variance-over {
-    color: #087443;
-    font-weight: 700;
 }
 
 @media (max-width: 992px) {

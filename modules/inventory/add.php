@@ -5,7 +5,6 @@ requirePermission('add');
 require_once '../../includes/db.php';
 
 $error = '';
-$success = '';
 $form = [
     'property_ics_number' => '',
     'item_name' => '',

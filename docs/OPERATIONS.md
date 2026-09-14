@@ -25,12 +25,18 @@ Keep multiple backup generations and periodically restore one into a test databa
 
 ## Applying migrations
 
-Run migration files in filename order against the existing `stocktrack` database:
+For a fresh database, import the current root `stocktrack.sql` once. For an existing database created from an older StockTrack schema, back it up first and import the single upgrade bundle below. Pulling the code alone does not update an existing database.
 
 ```powershell
-Get-Content migrations\002_preserve_logbook_history.sql -Raw | & 'C:\xampp\mysql\bin\mysql.exe' -u stocktrack_app -p stocktrack
-Get-Content migrations\003_add_password_change_flag.sql -Raw | & 'C:\xampp\mysql\bin\mysql.exe' -u stocktrack_app -p stocktrack
-Get-Content migrations\004_security_audit_tables.sql -Raw | & 'C:\xampp\mysql\bin\mysql.exe' -u stocktrack_app -p stocktrack
+Get-Content migrations\complete_upgrade.sql -Raw | & 'C:\xampp\mysql\bin\mysql.exe' -u stocktrack_app -p stocktrack
+```
+
+Do not run the upgrade bundle more than once against the same database.
+
+For a quick RIPE schema check:
+
+```powershell
+& 'C:\xampp\mysql\bin\mysql.exe' -u stocktrack_app -p stocktrack -e "SHOW COLUMNS FROM items LIKE 'property_ics_number'; SHOW COLUMNS FROM items LIKE 'unit_value'; SHOW COLUMNS FROM items LIKE 'balance_per_card';"
 ```
 
 ## Acceptance test checklist
