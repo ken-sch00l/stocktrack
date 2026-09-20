@@ -47,6 +47,7 @@ CREATE TABLE items (
     item_id INT AUTO_INCREMENT PRIMARY KEY,
     tracking_number VARCHAR(50) NOT NULL UNIQUE,
     property_ics_number VARCHAR(100),
+    coverage_type ENUM('PAR', 'ICS') NOT NULL DEFAULT 'ICS',
     serial_number VARCHAR(100),
     item_name VARCHAR(150) NOT NULL,
     category_id INT,

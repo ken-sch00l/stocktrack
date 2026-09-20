@@ -112,6 +112,7 @@ ALTER TABLE reports_log
 -- 009: Add RIPE inventory fields.
 ALTER TABLE items
     ADD COLUMN property_ics_number VARCHAR(100) NULL AFTER tracking_number,
+    ADD COLUMN coverage_type ENUM('PAR', 'ICS') NOT NULL DEFAULT 'ICS' AFTER property_ics_number,
     ADD COLUMN date_acquired DATE NULL AFTER date_purchased,
     ADD COLUMN unit_measure VARCHAR(50) NULL AFTER date_acquired,
     ADD COLUMN unit_value DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER unit_measure,

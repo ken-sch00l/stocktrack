@@ -11,20 +11,129 @@ if (!in_array($type, $allowed_types)) $type = 'ICS';
 $period_type = isset($_POST['period_type']) ? $_POST['period_type'] : '';
 $period_value = isset($_POST['period_value']) ? $_POST['period_value'] : '';
 $items = [];
+$ripe_par_items = [];
+$ripe_ics_items = [];
 $error = '';
 $report_generated = false;
+$default_report_title = $type === 'RIS' ? 'REQUISITION AND ISSUE SLIP (RIS)' : ($type === 'ICS' ? 'INVENTORY CUSTODIAN SLIP (ICS)' : ($type === 'PAR' ? 'PROPERTY ACKNOWLEDGMENT RECEIPT (PAR)' : 'REPORT ON INVENTORY OF PROPERTY AND EQUIPMENT'));
 $report_config = [
     'office_name' => trim((string)($_POST['office_name'] ?? 'BARANGAY PUGUIS')),
     'location' => trim((string)($_POST['location'] ?? 'La Trinidad, Benguet')),
     'report_date' => trim((string)($_POST['report_date'] ?? date('F d, Y'))),
     'fund_cluster' => trim((string)($_POST['fund_cluster'] ?? 'GENERAL FUND')),
-    'accountable_person' => trim((string)($_POST['accountable_person'] ?? '')),
+    'accountable_person' => trim((string)($_POST['accountable_person'] ?? 'SHEEN M. GATAN')),
+    'accountable_position' => trim((string)($_POST['accountable_position'] ?? 'Barangay Treasurer')),
+    'accountable_barangay' => trim((string)($_POST['accountable_barangay'] ?? 'Barangay Puguis')),
+    'assumption_date' => trim((string)($_POST['assumption_date'] ?? date('Y-m-d'))),
     'prepared_by' => trim((string)($_POST['prepared_by'] ?? '')),
     'certified_by' => trim((string)($_POST['certified_by'] ?? '')),
     'logo_position' => ($_POST['logo_position'] ?? 'left') === 'right' ? 'right' : 'left',
+    'header_title' => trim((string)($_POST['header_title'] ?? $default_report_title)),
+    'header_subtitle' => trim((string)($_POST['header_subtitle'] ?? '')),
+    'logo_x' => max(0, min(94, (float)($_POST['logo_x'] ?? 82))),
+    'logo_y' => max(0, min(80, (float)($_POST['logo_y'] ?? 8))),
+    'logo_width' => max(24, min(140, (float)($_POST['logo_width'] ?? 72))),
+    'logo_height' => max(24, min(140, (float)($_POST['logo_height'] ?? 72))),
+    'office_x' => max(0, min(90, (float)($_POST['office_x'] ?? 25))),
+    'office_y' => max(0, min(210, (float)($_POST['office_y'] ?? 8))),
+    'location_x' => max(0, min(90, (float)($_POST['location_x'] ?? 25))),
+    'location_y' => max(0, min(210, (float)($_POST['location_y'] ?? 38))),
+    'fund_x' => max(0, min(90, (float)($_POST['fund_x'] ?? 25))),
+    'fund_y' => max(0, min(210, (float)($_POST['fund_y'] ?? 68))),
+    'accountable_x' => max(0, min(90, (float)($_POST['accountable_x'] ?? 25))),
+    'accountable_y' => max(0, min(210, (float)($_POST['accountable_y'] ?? 98))),
+    'title_x' => max(0, min(90, (float)($_POST['title_x'] ?? 25))),
+    'title_y' => max(0, min(210, (float)($_POST['title_y'] ?? 138))),
+    'date_x' => max(0, min(90, (float)($_POST['date_x'] ?? 25))),
+    'date_y' => max(0, min(210, (float)($_POST['date_y'] ?? 182))),
 ];
 $logo_path = trim((string)($_POST['logo_path'] ?? ''));
 $selected_item_ids = array_values(array_filter(array_map('intval', (array)($_POST['item_ids'] ?? []))));
+$selection_submitted = array_key_exists('item_ids', $_POST);
+$export_format = $_POST['export_format'] ?? '';
+
+function report_export_logo_data($logo_path) {
+    $filename = basename(parse_url($logo_path, PHP_URL_PATH) ?: '');
+    $full_path = __DIR__ . '/../../uploads/' . $filename;
+    if (!$filename || !is_file($full_path)) {
+        return '';
+    }
+
+    $mime_type = mime_content_type($full_path);
+    return 'data:' . $mime_type . ';base64,' . base64_encode((string)file_get_contents($full_path));
+}
+
+function export_report_document($format, $type, $items, $config, $period_type, $period_value, $logo_path) {
+    $escape = static fn($value) => htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+    $logo_data = report_export_logo_data($logo_path);
+    $title = $escape($config['header_title']);
+    $header = '<table style="width:100%;border-collapse:collapse"><tr>';
+    if ($logo_data) {
+        $header .= '<td style="width:90px;vertical-align:top"><img src="' . $logo_data . '" style="width:' . (int)$config['logo_width'] . 'px;height:' . (int)$config['logo_height'] . 'px;object-fit:contain"></td>';
+    }
+    $cell = static fn($value) => '<td>' . $escape($value) . '</td>';
+    if ($type === 'RIPE') {
+        $assumption_date = $config['assumption_date'] ? date('F d, Y', strtotime($config['assumption_date'])) : '________________';
+        $header .= '<td style="text-align:center"><strong>REPORT ON INVENTORY OF PROPERTY AND EQUIPMENT</strong><br>As of ' . $escape($config['report_date']) . ' at ' . $escape($config['location']) . '<br>Fund Cluster: ' . $escape($config['fund_cluster']) . '<br>For which ' . $escape($config['accountable_person']) . ', ' . $escape($config['accountable_position']) . ', ' . $escape($config['accountable_barangay']) . ' is accountable, having assumed such accountability on ' . $escape($assumption_date) . '.</td></tr></table>';
+    } else {
+        $header .= '<td style="text-align:center"><strong>' . $escape($config['office_name']) . '</strong><br>' . $escape($config['location']) . '<br>';
+        if ($config['fund_cluster']) $header .= 'FUND CLUSTER: ' . $escape($config['fund_cluster']) . '<br>';
+        if ($config['accountable_person']) $header .= 'Accountable for: ' . $escape($config['accountable_person']) . '<br>';
+        $header .= '<hr><strong>' . $title . '</strong><br>As of ' . $escape($config['report_date']) . '</td></tr></table>';
+    }
+
+    if ($type === 'RIPE') {
+        $table = '';
+        foreach ([['title' => 'Part A - Property and Equipment covered by PAR', 'coverage' => 'PAR'], ['title' => 'Part B - Property and Equipment Covered by ICS', 'coverage' => 'ICS']] as $section) {
+            $table .= '<h3>' . $escape($section['title']) . '</h3><table border="1" cellpadding="4" cellspacing="0" style="width:100%;border-collapse:collapse;font-size:9pt"><thead><tr style="font-weight:bold;text-align:center"><th>Article</th><th>Description</th><th>Property/ICS Number</th><th>Date Acquired</th><th>Unit of Measure</th><th>Unit Value</th><th>Balance Per Card (Quantity)</th><th>On Hand Per Count (Quantity)</th><th>Shortage/Overage Quantity</th><th>Shortage/Overage Value</th><th>Remarks</th></tr></thead><tbody>';
+            $section_items = array_filter($items, static fn($row) => ($row['coverage_type'] ?? 'ICS') === $section['coverage']);
+            foreach ($section_items as $row) {
+                $remarks = $row['condition_status'] . ($row['person_in_charge'] ? ' - c/o ' . $row['person_in_charge'] : '') . ($row['notes'] ? ' - ' . $row['notes'] : '');
+                $date = !empty($row['date_acquired']) ? date('m/d/Y', strtotime($row['date_acquired'])) : '';
+                $unit = (int)$row['quantity'] . ' ' . ($row['unit_measure'] ?: ($row['unit'] ?? ''));
+                $table .= '<tr>' . $cell($row['category_name'] ?? '') . $cell($row['item_name']) . $cell($row['property_ics_number'] ?? '') . $cell($date) . $cell($unit) . $cell(number_format((float)($row['unit_value'] ?? 0), 2)) . $cell($row['balance_per_card'] ?? $row['quantity']) . $cell($row['on_hand_per_count'] ?? $row['quantity']) . $cell($row['shortage_overage_qty'] ?? 0) . $cell(number_format((float)($row['shortage_overage_value'] ?? 0), 2)) . $cell($remarks) . '</tr>';
+            }
+            $table .= '</tbody></table><br>';
+        }
+        $table .= '<table style="width:100%"><tr><td>Prepared by:<br><br><strong>' . $escape($config['prepared_by'] ?: '________________ (Name / Position)') . '</strong></td><td>Certified by:<br><br><strong>' . $escape($config['certified_by'] ?: '________________') . '</strong></td></tr></table>';
+    } else {
+    $table = '<table border="1" cellpadding="4" cellspacing="0" style="width:100%;border-collapse:collapse;font-size:10pt"><thead><tr style="font-weight:bold;text-align:center">';
+    if ($type === 'RIS') {
+        foreach (['Stock No. / Tracking No.', 'Unit', 'Description', 'Quantity Requested', 'Quantity Issued', 'Remarks'] as $heading) $table .= '<th>' . $heading . '</th>';
+    } elseif ($type === 'ICS') {
+        foreach (['Tracking No.', 'Description', 'Serial No.', 'Qty', 'Unit', 'Date Purchased', 'Condition', 'Person in Charge'] as $heading) $table .= '<th>' . $heading . '</th>';
+    } elseif ($type === 'PAR') {
+        foreach (['Property No.', 'Description', 'Qty', 'Unit Cost', 'Total Cost', 'Serial No.', 'Accountable Person', 'Condition'] as $heading) $table .= '<th>' . $heading . '</th>';
+    } else {
+        foreach (['Article', 'Description', 'Property / Inventory No.', 'Date Acquired', 'Unit of Measure', 'Unit Value', 'Balance per Card', 'On Hand per Count', 'Shortage / Overage Qty', 'Shortage / Overage Value', 'Remarks'] as $heading) $table .= '<th>' . $heading . '</th>';
+    }
+    $table .= '</tr></thead><tbody>';
+    foreach ($items as $row) {
+        $property_number = $row['property_ics_number'] ?: $row['tracking_number'];
+        $unit_value = (float)($row['unit_value'] ?? 0);
+        $quantity = (int)($row['quantity'] ?? 0);
+        if ($type === 'RIS') {
+            $table .= '<tr>' . $cell($row['tracking_number']) . $cell($row['unit'] ?? '') . $cell($row['item_name']) . $cell($row['report_quantity'] ?? $quantity) . $cell($row['report_quantity'] ?? $quantity) . $cell($row['report_action'] ?? $row['condition_status']) . '</tr>';
+        } elseif ($type === 'ICS') {
+            $date = !empty($row['date_purchased']) ? date('m/d/Y', strtotime($row['date_purchased'])) : '';
+            $table .= '<tr>' . $cell($row['tracking_number']) . $cell($row['item_name']) . $cell($row['serial_number'] ?? '') . $cell($quantity) . $cell($row['unit'] ?? '') . $cell($date) . $cell($row['condition_status']) . $cell(($row['person_in_charge'] ?? '') . ' ' . ($row['position'] ?? '')) . '</tr>';
+        } elseif ($type === 'PAR') {
+            $table .= '<tr>' . $cell($property_number) . $cell($row['item_name']) . $cell($quantity) . $cell(number_format($unit_value, 2)) . $cell(number_format($unit_value * $quantity, 2)) . $cell($row['serial_number'] ?? '') . $cell(($row['person_in_charge'] ?? '') . ' ' . ($row['position'] ?? '')) . $cell($row['condition_status']) . '</tr>';
+        } else {
+            $date = !empty($row['date_acquired']) ? date('m/d/Y', strtotime($row['date_acquired'])) : '';
+            $table .= '<tr>' . $cell($row['category_name'] ?? '') . $cell($row['item_name']) . $cell($property_number) . $cell($date) . $cell($row['unit_measure'] ?: ($row['unit'] ?? '')) . $cell(number_format($unit_value, 2)) . $cell($row['balance_per_card'] ?? $quantity) . $cell($row['on_hand_per_count'] ?? $quantity) . $cell($row['shortage_overage_qty'] ?? 0) . $cell(number_format((float)($row['shortage_overage_value'] ?? 0), 2)) . $cell($row['remarks'] ?: ($row['notes'] ?: $row['condition_status'])) . '</tr>';
+        }
+    }
+    $table .= '</tbody></table><br><br><table style="width:100%"><tr><td>Prepared by:<br><br><strong>' . $escape($config['prepared_by']) . '</strong></td><td>Certified / received by:<br><br><strong>' . $escape($config['certified_by']) . '</strong></td></tr></table>';
+    }
+    $document = '<html><head><meta charset="UTF-8"><title>' . $title . '</title></head><body>' . $header . $table . '</body></html>';
+    $extension = $format === 'word' ? 'doc' : 'xls';
+    $content_type = $format === 'word' ? 'application/msword' : 'application/vnd.ms-excel';
+    header('Content-Type: ' . $content_type . '; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="stocktrack-' . strtolower($type) . '-' . date('Ymd-His') . '.' . $extension . '"');
+    echo $document;
+    exit;
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf_token();
@@ -62,11 +171,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $period_type) {
             $items[] = $row;
         }
 
-        if ($selected_item_ids) {
+        if ($selection_submitted) {
             $selected_lookup = array_flip($selected_item_ids);
             $items = array_values(array_filter($items, static function ($row) use ($selected_lookup) {
                 return isset($selected_lookup[(int)$row['item_id']]);
             }));
+        }
+
+        if ($type === 'RIPE') {
+            foreach ($items as $row) {
+                if (($row['coverage_type'] ?? 'ICS') === 'PAR') {
+                    $ripe_par_items[] = $row;
+                } else {
+                    $ripe_ics_items[] = $row;
+                }
+            }
         }
 
         if (!empty($_FILES['report_logo']['tmp_name']) && is_uploaded_file($_FILES['report_logo']['tmp_name'])) {
@@ -84,6 +203,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $period_type) {
         }
 
         if (!$error) {
+            if (in_array($export_format, ['word', 'excel'], true)) {
+                export_report_document($export_format, $type, $items, $report_config, $period_type, $period_value, $logo_path);
+            }
+
             $log_stmt = $conn->prepare("INSERT INTO reports_log (report_type, period_type, period_value, generated_by) VALUES (?, ?, ?, ?)");
             $log_stmt->bind_param("sssi", $type, $period_type, $period_value, $_SESSION['user_id']);
             $log_stmt->execute();
@@ -134,6 +257,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $period_type) {
                     </button>
                 </div>
             </div>
+            <?php if ($type === 'RIPE'): ?>
+            <div class="row g-3 mt-1">
+                <div class="col-md-4"><label class="form-label fw-semibold">As-of place</label><input type="text" name="location" class="form-control" value="<?php echo htmlspecialchars($report_config['location']); ?>" required></div>
+                <div class="col-md-4"><label class="form-label fw-semibold">Fund cluster</label><input type="text" name="fund_cluster" class="form-control" value="<?php echo htmlspecialchars($report_config['fund_cluster']); ?>" required></div>
+                <div class="col-md-4"><label class="form-label fw-semibold">As-of date</label><input type="text" name="report_date" class="form-control" value="<?php echo htmlspecialchars($report_config['report_date']); ?>" required></div>
+                <div class="col-md-4"><label class="form-label fw-semibold">Accountable officer</label><input type="text" name="accountable_person" class="form-control" value="<?php echo htmlspecialchars($report_config['accountable_person']); ?>" placeholder="Full name" required></div>
+                <div class="col-md-4"><label class="form-label fw-semibold">Position</label><input type="text" name="accountable_position" class="form-control" value="<?php echo htmlspecialchars($report_config['accountable_position']); ?>" required></div>
+                <div class="col-md-4"><label class="form-label fw-semibold">Barangay / office</label><input type="text" name="accountable_barangay" class="form-control" value="<?php echo htmlspecialchars($report_config['accountable_barangay']); ?>" required></div>
+                <div class="col-md-4"><label class="form-label fw-semibold">Assumption date</label><input type="date" name="assumption_date" class="form-control" value="<?php echo htmlspecialchars($report_config['assumption_date']); ?>"></div>
+            </div>
+            <?php endif; ?>
         </form>
     </div>
 </div>
@@ -147,49 +281,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $period_type) {
     <input type="hidden" name="period_type" value="<?php echo htmlspecialchars($period_type); ?>">
     <input type="hidden" name="period_value" value="<?php echo htmlspecialchars($period_value); ?>">
     <input type="hidden" name="logo_path" value="<?php echo htmlspecialchars($logo_path); ?>">
-    <div class="card border-0 shadow-sm mb-4 no-print report-designer">
-        <div class="card-header bg-white fw-semibold"><i class="bi bi-sliders me-2 text-primary"></i>Customize printed report</div>
+    <?php foreach (['location', 'report_date', 'fund_cluster', 'accountable_person', 'accountable_position', 'accountable_barangay', 'assumption_date', 'office_name', 'prepared_by', 'certified_by'] as $report_field): ?>
+        <input type="hidden" name="<?php echo $report_field; ?>" value="<?php echo htmlspecialchars($report_config[$report_field]); ?>">
+    <?php endforeach; ?>
+    <div class="card border-0 shadow-sm mb-4 no-print">
         <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-4"><label class="form-label">Office / Barangay name</label><input name="office_name" class="form-control" value="<?php echo htmlspecialchars($report_config['office_name']); ?>"></div>
-                <div class="col-md-4"><label class="form-label">Location</label><input name="location" class="form-control" value="<?php echo htmlspecialchars($report_config['location']); ?>"></div>
-                <div class="col-md-4"><label class="form-label">Report date</label><input name="report_date" class="form-control" value="<?php echo htmlspecialchars($report_config['report_date']); ?>"></div>
-                <div class="col-md-4"><label class="form-label">Fund cluster</label><input name="fund_cluster" class="form-control" value="<?php echo htmlspecialchars($report_config['fund_cluster']); ?>"></div>
-                <div class="col-md-4"><label class="form-label">Accountable person</label><input name="accountable_person" class="form-control" value="<?php echo htmlspecialchars($report_config['accountable_person']); ?>"></div>
-                <div class="col-md-4"><label class="form-label">Logo (PNG, JPG, GIF; max 2 MB)</label><input type="file" name="report_logo" class="form-control" accept="image/png,image/jpeg,image/gif"></div>
-                <div class="col-md-4"><label class="form-label">Logo position</label><select name="logo_position" class="form-select"><option value="left" <?php echo $report_config['logo_position'] === 'left' ? 'selected' : ''; ?>>Top left</option><option value="right" <?php echo $report_config['logo_position'] === 'right' ? 'selected' : ''; ?>>Top right</option></select></div>
-                <div class="col-md-4"><label class="form-label">Prepared by</label><input name="prepared_by" class="form-control" value="<?php echo htmlspecialchars($report_config['prepared_by']); ?>"></div>
-                <div class="col-md-4"><label class="form-label">Certified / received by</label><input name="certified_by" class="form-control" value="<?php echo htmlspecialchars($report_config['certified_by']); ?>"></div>
+            <div class="d-flex flex-wrap gap-2 mt-3">
+                <button type="submit" name="export_format" value="word" class="btn btn-outline-primary"><i class="bi bi-file-earmark-word me-1"></i>Download Word template</button>
+                <button type="submit" name="export_format" value="excel" class="btn btn-outline-success"><i class="bi bi-file-earmark-excel me-1"></i>Download Excel template</button>
             </div>
-            <p class="form-text mb-0 mt-3">Select the records below, then click Update preview. Blank signatory fields remain available for handwritten signatures.</p>
+            <p class="form-text mb-0 mt-2">Edit the downloaded file in Microsoft Word or Excel, then print it from that application.</p>
         </div>
     </div>
 
 <div class="card border-0 shadow-sm" id="reportOutput">
     <div class="card-body">
         <!-- Report Header -->
-        <div class="report-paper-header mb-4 <?php echo $report_config['logo_position'] === 'right' ? 'logo-right' : 'logo-left'; ?>">
-            <?php if ($logo_path): ?><img src="<?php echo htmlspecialchars($logo_path); ?>" alt="Report logo" class="report-logo"><?php endif; ?>
-            <div class="text-center flex-grow-1">
-            <h5 class="fw-bold mb-0"><?php echo htmlspecialchars($report_config['office_name']); ?></h5>
-            <p class="mb-0"><?php echo htmlspecialchars($report_config['location']); ?></p>
-            <?php if ($report_config['fund_cluster']): ?><p class="mb-0">FUND CLUSTER: <?php echo htmlspecialchars($report_config['fund_cluster']); ?></p><?php endif; ?>
-            <hr>
-            <?php if ($type === 'RIS'): ?>
-                <h5 class="fw-bold">REQUISITION AND ISSUE SLIP (RIS)</h5>
-            <?php elseif ($type === 'ICS'): ?>
-                <h5 class="fw-bold">INVENTORY CUSTODIAN SLIP (ICS)</h5>
-            <?php elseif ($type === 'PAR'): ?>
-                <h5 class="fw-bold">PROPERTY ACKNOWLEDGMENT RECEIPT (PAR)</h5>
+        <div class="report-paper-header mb-4 text-center">
+            <?php if ($type === 'RIPE'): ?>
+                <h5 class="fw-bold mb-2">REPORT ON INVENTORY OF PROPERTY AND EQUIPMENT</h5>
+                <p class="mb-1">As of <?php echo htmlspecialchars($report_config['report_date']); ?> at <?php echo htmlspecialchars($report_config['location']); ?></p>
+                <p class="mb-1">Fund Cluster: <?php echo htmlspecialchars($report_config['fund_cluster']); ?></p>
+                <p class="mb-1">For which <?php echo htmlspecialchars($report_config['accountable_person']); ?>, <?php echo htmlspecialchars($report_config['accountable_position']); ?>, <?php echo htmlspecialchars($report_config['accountable_barangay']); ?> is accountable, having assumed such accountability on <?php echo $report_config['assumption_date'] ? htmlspecialchars(date('F d, Y', strtotime($report_config['assumption_date']))) : '________________'; ?>.</p>
             <?php else: ?>
-                <h5 class="fw-bold">REPORT ON INVENTORY OF PROPERTY AND EQUIPMENT (RIPE)</h5>
+                <?php if ($logo_path): ?><img src="<?php echo htmlspecialchars($logo_path); ?>" alt="Report logo" class="report-logo-static"><?php endif; ?>
+                <h5 class="fw-bold mb-0"><?php echo htmlspecialchars($report_config['office_name']); ?></h5>
+                <p class="mb-0"><?php echo htmlspecialchars($report_config['location']); ?></p>
+                <?php if ($report_config['fund_cluster']): ?><p class="mb-0">FUND CLUSTER: <?php echo htmlspecialchars($report_config['fund_cluster']); ?></p><?php endif; ?>
+                <?php if ($report_config['accountable_person']): ?><p class="mb-0">Accountable for: <?php echo htmlspecialchars($report_config['accountable_person']); ?></p><?php endif; ?>
+                <hr>
+                <h5 class="fw-bold"><?php echo htmlspecialchars($report_config['header_title']); ?></h5>
+                <p class="mb-0">As of <?php echo htmlspecialchars($report_config['report_date']); ?></p>
             <?php endif; ?>
-            <p class="mb-0">
-                Period: <?php echo $period_type; ?> 
-                <?php echo $period_type !== 'Weekly' ? '- ' . $period_value : '(Last 7 Days)'; ?>
-            </p>
-            <p class="mb-0">Date: <?php echo htmlspecialchars($report_config['report_date']); ?></p>
-            </div>
         </div>
 
         <?php if ($type === 'RIS'): ?>
@@ -209,7 +332,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $period_type) {
                 <?php if (count($items) > 0): ?>
                     <?php foreach ($items as $row): ?>
                     <tr>
-                        <td><input class="no-print report-item-check" type="checkbox" name="item_ids[]" value="<?php echo (int)$row['item_id']; ?>" <?php echo (!$selected_item_ids || in_array((int)$row['item_id'], $selected_item_ids, true)) ? 'checked' : ''; ?>> <?php echo htmlspecialchars($row['tracking_number']); ?></td>
+                        <td><input class="no-print report-item-check" type="checkbox" name="item_ids[]" value="<?php echo (int)$row['item_id']; ?>" <?php echo (!$selection_submitted || in_array((int)$row['item_id'], $selected_item_ids, true)) ? 'checked' : ''; ?>> <?php echo htmlspecialchars($row['tracking_number']); ?></td>
                         <td><?php echo htmlspecialchars($row['unit'] ?? ''); ?></td>
                         <td><?php echo htmlspecialchars($row['item_name']); ?></td>
                         <td class="text-center"><?php echo (int)($row['report_quantity'] ?? $row['quantity']); ?></td>
@@ -226,19 +349,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $period_type) {
             <div class="col-md-4 text-center">
                 <div style="border-top:1px solid #000; margin-top:40px; padding-top:5px;">
                     <strong>Requested by:</strong><br>
-                    Barangay Secretary
+                    <?php echo htmlspecialchars($report_config['prepared_by'] ?: 'Barangay Secretary'); ?>
                 </div>
             </div>
             <div class="col-md-4 text-center">
                 <div style="border-top:1px solid #000; margin-top:40px; padding-top:5px;">
                     <strong>Approved by:</strong><br>
-                    Barangay Captain
+                    <?php echo htmlspecialchars($report_config['certified_by'] ?: 'Barangay Captain'); ?>
                 </div>
             </div>
             <div class="col-md-4 text-center">
                 <div style="border-top:1px solid #000; margin-top:40px; padding-top:5px;">
                     <strong>Issued by:</strong><br>
-                    Barangay Treasurer
+                    <?php echo htmlspecialchars($report_config['accountable_person'] ?: 'Barangay Treasurer'); ?>
                 </div>
             </div>
         </div>
@@ -262,7 +385,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $period_type) {
                 <?php if (count($items) > 0): ?>
                     <?php foreach ($items as $row): ?>
                     <tr>
-                        <td><input class="no-print report-item-check" type="checkbox" name="item_ids[]" value="<?php echo (int)$row['item_id']; ?>" <?php echo (!$selected_item_ids || in_array((int)$row['item_id'], $selected_item_ids, true)) ? 'checked' : ''; ?>> <?php echo htmlspecialchars($row['tracking_number']); ?></td>
+                        <td><input class="no-print report-item-check" type="checkbox" name="item_ids[]" value="<?php echo (int)$row['item_id']; ?>" <?php echo (!$selection_submitted || in_array((int)$row['item_id'], $selected_item_ids, true)) ? 'checked' : ''; ?>> <?php echo htmlspecialchars($row['tracking_number']); ?></td>
                         <td><?php echo htmlspecialchars($row['item_name']); ?></td>
                         <td><?php echo htmlspecialchars($row['serial_number'] ?? 'N/A'); ?></td>
                         <td class="text-center"><?php echo $row['quantity']; ?></td>
@@ -289,13 +412,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $period_type) {
             <div class="col-md-6 text-center">
                 <div style="border-top:1px solid #000; margin-top:40px; padding-top:5px;">
                     <strong>Received from:</strong><br>
-                    Barangay Treasurer / Property Custodian
+                    <?php echo htmlspecialchars($report_config['prepared_by'] ?: 'Barangay Treasurer / Property Custodian'); ?>
                 </div>
             </div>
             <div class="col-md-6 text-center">
                 <div style="border-top:1px solid #000; margin-top:40px; padding-top:5px;">
                     <strong>Received by:</strong><br>
-                    Position / Designation
+                    <?php echo htmlspecialchars($report_config['certified_by'] ?: 'Position / Designation'); ?>
                 </div>
             </div>
         </div>
@@ -319,7 +442,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $period_type) {
                 <?php if (count($items) > 0): ?>
                     <?php foreach ($items as $row): ?>
                     <tr>
-                        <td><input class="no-print report-item-check" type="checkbox" name="item_ids[]" value="<?php echo (int)$row['item_id']; ?>" <?php echo (!$selected_item_ids || in_array((int)$row['item_id'], $selected_item_ids, true)) ? 'checked' : ''; ?>> <?php echo htmlspecialchars($row['property_ics_number'] ?: $row['tracking_number']); ?></td>
+                        <td><input class="no-print report-item-check" type="checkbox" name="item_ids[]" value="<?php echo (int)$row['item_id']; ?>" <?php echo (!$selection_submitted || in_array((int)$row['item_id'], $selected_item_ids, true)) ? 'checked' : ''; ?>> <?php echo htmlspecialchars($row['property_ics_number'] ?: $row['tracking_number']); ?></td>
                         <td><?php echo htmlspecialchars($row['item_name']); ?></td>
                         <td class="text-center"><?php echo (int)$row['quantity']; ?></td>
                         <td class="text-end"><?php echo number_format((float)($row['unit_value'] ?? 0), 2); ?></td>
@@ -335,63 +458,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $period_type) {
             </tbody>
         </table>
         <div class="row mt-4">
-            <div class="col-md-6 text-center"><div style="border-top:1px solid #000; margin-top:40px; padding-top:5px;"><strong>Issued by:</strong><br>Barangay Treasurer / Property Custodian</div></div>
-            <div class="col-md-6 text-center"><div style="border-top:1px solid #000; margin-top:40px; padding-top:5px;"><strong>Received by:</strong><br>Accountable Person</div></div>
+            <div class="col-md-6 text-center"><div style="border-top:1px solid #000; margin-top:40px; padding-top:5px;"><strong>Issued by:</strong><br><?php echo htmlspecialchars($report_config['prepared_by'] ?: 'Barangay Treasurer / Property Custodian'); ?></div></div>
+            <div class="col-md-6 text-center"><div style="border-top:1px solid #000; margin-top:40px; padding-top:5px;"><strong>Received by:</strong><br><?php echo htmlspecialchars($report_config['accountable_person'] ?: 'Accountable Person'); ?></div></div>
         </div>
         <?php else: ?>
         <!-- RIPE FORMAT -->
-        <table class="table table-bordered">
-            <thead>
-                <tr class="text-center">
-                    <th rowspan="2">Article</th>
-                    <th rowspan="2">Description</th>
-                    <th rowspan="2">Property / Inventory No.</th>
-                    <th rowspan="2">Date Acquired</th>
-                    <th rowspan="2">Unit of Measure</th>
-                    <th rowspan="2">Unit Value</th>
-                    <th rowspan="2">Balance per Card</th>
-                    <th rowspan="2">On Hand per Count</th>
-                    <th colspan="2">Shortage / Overage</th>
-                    <th rowspan="2">Remarks</th>
-                </tr>
-                <tr class="text-center">
-                    <th>Quantity</th>
-                    <th>Value</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if (count($items) > 0): ?>
-                    <?php foreach ($items as $row): ?>
-                    <tr>
-                        <td><input class="no-print report-item-check" type="checkbox" name="item_ids[]" value="<?php echo (int)$row['item_id']; ?>" <?php echo (!$selected_item_ids || in_array((int)$row['item_id'], $selected_item_ids, true)) ? 'checked' : ''; ?>> <?php echo htmlspecialchars($row['category_name'] ?? 'N/A'); ?></td>
-                        <td><?php echo htmlspecialchars($row['item_name']); ?></td>
-                        <td><?php echo htmlspecialchars($row['property_ics_number'] ?: $row['tracking_number']); ?></td>
-                        <td><?php echo $row['date_acquired'] ? date('m/d/Y', strtotime($row['date_acquired'])) : 'N/A'; ?></td>
-                        <td class="text-center"><?php echo htmlspecialchars($row['unit_measure'] ?: ($row['unit'] ?? '')); ?></td>
-                        <td class="text-end"><?php echo number_format((float)($row['unit_value'] ?? 0), 2); ?></td>
-                        <td class="text-center"><?php echo (int)($row['balance_per_card'] ?? $row['quantity']); ?></td>
-                        <td class="text-center"><?php echo (int)($row['on_hand_per_count'] ?? $row['quantity']); ?></td>
-                        <td class="text-center"><?php echo (int)($row['shortage_overage_qty'] ?? 0); ?></td>
-                        <td class="text-end"><?php echo number_format((float)($row['shortage_overage_value'] ?? 0), 2); ?></td>
-                        <td><?php echo htmlspecialchars($row['remarks'] ?: ($row['notes'] ?: $row['condition_status'])); ?></td>
+        <?php foreach ([['title' => 'Part A - Property and Equipment covered by PAR', 'rows' => $ripe_par_items], ['title' => 'Part B - Property and Equipment Covered by ICS', 'rows' => $ripe_ics_items]] as $ripe_section): ?>
+            <h6 class="fw-bold mt-3 mb-2"><?php echo htmlspecialchars($ripe_section['title']); ?></h6>
+            <table class="table table-bordered ripe-table">
+                <thead>
+                    <tr class="text-center">
+                        <th rowspan="2">Article</th>
+                        <th rowspan="2">Description</th>
+                        <th rowspan="2">Property/ICS Number</th>
+                        <th rowspan="2">Date Acquired</th>
+                        <th rowspan="2">Unit of Measure</th>
+                        <th rowspan="2">Unit Value</th>
+                        <th rowspan="2">Balance Per Card (Quantity)</th>
+                        <th rowspan="2">On Hand Per Count (Quantity)</th>
+                        <th colspan="2">Shortage/Overage</th>
+                        <th rowspan="2">Remarks</th>
                     </tr>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <tr><td colspan="11" class="text-center text-muted py-3">No items found for selected period.</td></tr>
-                <?php endif; ?>
-            </tbody>
-        </table>
+                    <tr class="text-center"><th>Quantity</th><th>Value</th></tr>
+                </thead>
+                <tbody>
+                    <?php if (count($ripe_section['rows']) > 0): ?>
+                        <?php foreach ($ripe_section['rows'] as $row): ?>
+                        <?php $remarks = $row['condition_status'] . ($row['person_in_charge'] ? ' - c/o ' . $row['person_in_charge'] : '') . ($row['notes'] ? ' - ' . $row['notes'] : ''); ?>
+                        <tr>
+                            <td><?php echo htmlspecialchars($row['category_name'] ?? ''); ?></td>
+                            <td><?php echo htmlspecialchars($row['item_name']); ?></td>
+                            <td><?php echo htmlspecialchars($row['property_ics_number'] ?? ''); ?></td>
+                            <td><?php echo $row['date_acquired'] ? date('m/d/Y', strtotime($row['date_acquired'])) : ''; ?></td>
+                            <td class="text-center"><?php echo (int)$row['quantity'] . ' ' . htmlspecialchars($row['unit_measure'] ?: ($row['unit'] ?? '')); ?></td>
+                            <td class="text-end"><?php echo number_format((float)($row['unit_value'] ?? 0), 2); ?></td>
+                            <td class="text-center"><?php echo (int)($row['balance_per_card'] ?? $row['quantity']); ?></td>
+                            <td class="text-center"><?php echo (int)($row['on_hand_per_count'] ?? $row['quantity']); ?></td>
+                            <td class="text-center"><?php echo (int)($row['shortage_overage_qty'] ?? 0); ?></td>
+                            <td class="text-end"><?php echo number_format((float)($row['shortage_overage_value'] ?? 0), 2); ?></td>
+                            <td><?php echo htmlspecialchars($remarks); ?></td>
+                        </tr>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <tr><td colspan="11" class="text-center text-muted py-3">No items found for this coverage type.</td></tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        <?php endforeach; ?>
         <div class="row mt-4">
             <div class="col-md-6 text-center">
                 <div style="border-top:1px solid #000; margin-top:40px; padding-top:5px;">
                     <strong>Prepared by:</strong><br>
-                    Barangay Record Keeper
+                    <?php echo htmlspecialchars($report_config['prepared_by'] ?: '________________ (Name / Position)'); ?>
                 </div>
             </div>
             <div class="col-md-6 text-center">
                 <div style="border-top:1px solid #000; margin-top:40px; padding-top:5px;">
                     <strong>Certified correct by:</strong><br>
-                    Barangay Treasurer / Property Custodian
+                    <?php echo htmlspecialchars($report_config['certified_by'] ?: '________________'); ?>
                 </div>
             </div>
         </div>
@@ -432,6 +556,7 @@ function togglePeriodValue() {
         div.style.display = 'none';
     }
 }
+
 </script>
 
 <?php require_once '../../includes/footer.php'; ?>

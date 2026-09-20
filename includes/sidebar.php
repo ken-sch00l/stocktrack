@@ -16,6 +16,13 @@
                 <i class="bi bi-clock-history me-2"></i>History
             </a>
         </li>
+        <?php if (hasAnyRole(['admin', 'super_admin', 'treasurer'])): ?>
+        <li class="nav-item">
+            <a href="/stocktrack/modules/inventory/count.php" class="nav-link text-white <?php echo strpos($current_path, '/modules/inventory/count.php') === 0 ? 'active' : ''; ?>">
+                <i class="bi bi-clipboard2-check me-2"></i>Physical Count
+            </a>
+        </li>
+        <?php endif; ?>
         <li class="nav-item">
             <a href="/stocktrack/modules/logbook/index.php" class="nav-link text-white <?php echo strpos($current_path, '/modules/logbook/') === 0 ? 'active' : ''; ?>">
                 <i class="bi bi-journal-text me-2"></i>Logbook

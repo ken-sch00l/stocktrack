@@ -7,6 +7,7 @@ require_once '../../includes/db.php';
 $error = '';
 $form = [
     'property_ics_number' => '',
+    'coverage_type' => 'ICS',
     'item_name' => '',
     'date_acquired' => '',
     'unit_measure' => '',
@@ -44,13 +45,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $shortage_overage_qty      = (int)($_POST['shortage_overage_qty'] ?? 0);
     $shortage_overage_value    = max(0, (float)str_replace(',', '', (string)($_POST['shortage_overage_value'] ?? 0)));
     $property_ics_number       = trim((string)($_POST['property_ics_number'] ?? ''));
+    $coverage_type             = $_POST['coverage_type'] ?? 'ICS';
     $person_charge             = trim((string)($_POST['person_in_charge'] ?? ''));
     $position                  = trim((string)($_POST['position'] ?? ''));
     $last_inventory            = ($_POST['last_inventory_date'] ?? '') ?: null;
     $remarks                   = trim((string)($_POST['remarks'] ?? ''));
     $created_by                = $_SESSION['user_id'];
 
-    if (!$item_name || !$date_acquired || !$unit_measure || !array_key_exists('on_hand_per_count', $_POST) || $on_hand_per_count < 0 || !in_array($condition, ['Serviceable', 'Unserviceable'], true)) {
+    if (!$item_name || !$date_acquired || !$unit_measure || !array_key_exists('on_hand_per_count', $_POST) || $on_hand_per_count < 0 || !in_array($condition, ['Serviceable', 'Unserviceable'], true) || !in_array($coverage_type, ['PAR', 'ICS'], true)) {
         $error = 'Description, date acquired, unit of measure, on-hand quantity, and condition are required.';
     }
 
@@ -58,8 +60,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $temporary_tracking_number = 'TMP-' . bin2hex(random_bytes(16));
         $conn->begin_transaction();
 
-        $stmt = $conn->prepare("INSERT INTO items (tracking_number, property_ics_number, serial_number, item_name, category_id, condition_status, quantity, unit, date_purchased, date_acquired, unit_measure, unit_value, balance_per_card, on_hand_per_count, shortage_overage_qty, shortage_overage_value, person_in_charge, position, last_inventory_date, remarks, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("ssssisissssdiiidssssi", $temporary_tracking_number, $property_ics_number, $serial_number, $item_name, $category_id, $condition, $quantity, $unit, $date_purchased, $date_acquired, $unit_measure, $unit_value, $balance_per_card, $on_hand_per_count, $shortage_overage_qty, $shortage_overage_value, $person_charge, $position, $last_inventory, $remarks, $created_by);
+        $stmt = $conn->prepare("INSERT INTO items (tracking_number, property_ics_number, coverage_type, serial_number, item_name, category_id, condition_status, quantity, unit, date_purchased, date_acquired, unit_measure, unit_value, balance_per_card, on_hand_per_count, shortage_overage_qty, shortage_overage_value, person_in_charge, position, last_inventory_date, remarks, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("sssssisissssdiiidssssi", $temporary_tracking_number, $property_ics_number, $coverage_type, $serial_number, $item_name, $category_id, $condition, $quantity, $unit, $date_purchased, $date_acquired, $unit_measure, $unit_value, $balance_per_card, $on_hand_per_count, $shortage_overage_qty, $shortage_overage_value, $person_charge, $position, $last_inventory, $remarks, $created_by);
 
         if ($stmt->execute()) {
             $item_id = $conn->insert_id;
@@ -112,6 +114,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <label class="paper-entry-label">Description</label>
                     <input type="text" name="item_name" class="paper-entry-input" value="<?php echo htmlspecialchars($form['item_name'] ?? ''); ?>" placeholder="Item name" required>
                     <div class="form-text">Example: Motorcycle, Printer, or Monoblock Chair.</div>
+                </div>
+                <div class="paper-entry-field span-2">
+                    <label class="paper-entry-label">Coverage Type</label>
+                    <select name="coverage_type" class="paper-entry-input" required>
+                        <option value="PAR" <?php echo ($form['coverage_type'] ?? '') === 'PAR' ? 'selected' : ''; ?>>PAR</option>
+                        <option value="ICS" <?php echo ($form['coverage_type'] ?? 'ICS') === 'ICS' ? 'selected' : ''; ?>>ICS</option>
+                    </select>
                 </div>
                 <div class="paper-entry-field span-2">
                     <label class="paper-entry-label">Date Acquired</label>

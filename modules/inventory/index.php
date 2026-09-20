@@ -155,7 +155,8 @@ $categories = $conn->query("SELECT * FROM categories ORDER BY category_name ASC"
                 <tr>
                     <th rowspan="2">Article</th>
                     <th rowspan="2">Description</th>
-                    <th rowspan="2">Property / Inventory No.</th>
+                    <th rowspan="2">Tracking No.</th>
+                    <th rowspan="2">Property / ICS No.</th>
                     <th rowspan="2">Date Acquired</th>
                     <th rowspan="2">Unit</th>
                     <th rowspan="2">Unit Value</th>
@@ -164,6 +165,7 @@ $categories = $conn->query("SELECT * FROM categories ORDER BY category_name ASC"
                     <th rowspan="2">Available</th>
                     <th colspan="2" class="text-center">Shortage / Overage</th>
                     <th rowspan="2">Remarks</th>
+                    <th rowspan="2">Condition</th>
                     <th rowspan="2">Actions</th>
                 </tr>
                 <tr>
@@ -177,7 +179,8 @@ $categories = $conn->query("SELECT * FROM categories ORDER BY category_name ASC"
                     <tr>
                         <td><small><?php echo htmlspecialchars($row['category_name'] ?? 'N/A'); ?></small></td>
                         <td><?php echo htmlspecialchars($row['item_name']); ?></td>
-                        <td><code><?php echo htmlspecialchars($row['property_ics_number'] ?: $row['tracking_number']); ?></code></td>
+                        <td><code><?php echo htmlspecialchars($row['tracking_number']); ?></code></td>
+                        <td><code><?php echo htmlspecialchars($row['property_ics_number'] ?? ''); ?></code></td>
                         <td><?php echo $row['date_acquired'] ? date('M d, Y', strtotime($row['date_acquired'])) : 'N/A'; ?></td>
                         <td><?php echo htmlspecialchars($row['unit_measure'] ?: ($row['unit'] ?? '')); ?></td>
                         <td><?php echo number_format((float)($row['unit_value'] ?? 0), 2); ?></td>
@@ -187,6 +190,7 @@ $categories = $conn->query("SELECT * FROM categories ORDER BY category_name ASC"
                         <td><?php echo (int)($row['shortage_overage_qty'] ?? 0); ?></td>
                         <td><?php echo number_format((float)($row['shortage_overage_value'] ?? 0), 2); ?></td>
                         <td><?php echo htmlspecialchars($row['remarks'] ?: ($row['notes'] ?: $row['condition_status'])); ?></td>
+                        <td><span class="badge <?php echo $row['condition_status'] === 'Serviceable' ? 'badge-serviceable' : 'badge-unserviceable'; ?>"><?php echo htmlspecialchars($row['condition_status']); ?></span></td>
                         <td>
                             <a href="view.php?id=<?php echo $row['item_id']; ?>" class="btn btn-sm btn-outline-primary" title="View">
                                 <i class="bi bi-eye"></i>
@@ -207,7 +211,7 @@ $categories = $conn->query("SELECT * FROM categories ORDER BY category_name ASC"
                     </tr>
                     <?php endwhile; ?>
                 <?php else: ?>
-                    <tr><td colspan="13" class="text-center text-muted py-4">No items found.</td></tr>
+                    <tr><td colspan="14" class="text-center text-muted py-4">No items found.</td></tr>
                 <?php endif; ?>
             </tbody>
         </table>
