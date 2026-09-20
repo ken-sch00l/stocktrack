@@ -27,10 +27,10 @@ $params = [];
 $types = '';
 
 if ($search) {
-    $where .= " AND (i.item_name LIKE ? OR i.tracking_number LIKE ? OR i.serial_number LIKE ?)";
+    $where .= " AND (i.item_name LIKE ? OR i.tracking_number LIKE ? OR i.property_ics_number LIKE ? OR i.serial_number LIKE ?)";
     $s = "%$search%";
-    $params = array_merge($params, [$s, $s, $s]);
-    $types .= 'sss';
+    $params = array_merge($params, [$s, $s, $s, $s]);
+    $types .= 'ssss';
 }
 if ($category_filter) {
     $where .= " AND i.category_id = ?";
@@ -62,7 +62,7 @@ $pagination_url = function ($target_page) use ($query_params) {
     return '?' . htmlspecialchars(http_build_query(array_merge($query_params, ['page' => $target_page])), ENT_QUOTES, 'UTF-8');
 };
 
-$sql = "SELECT i.*, c.category_name FROM items i LEFT JOIN categories c ON i.category_id = c.category_id $where ORDER BY {$sort_columns[$sort_by]} $sort_direction, i.item_id ASC LIMIT ? OFFSET ?";
+$sql = "SELECT i.*, c.category_name, COALESCE((SELECT SUM(CASE WHEN l.action IN ('Borrowed', 'Used') THEN l.quantity WHEN l.action = 'Returned' THEN -l.quantity ELSE 0 END) FROM logbook l WHERE l.item_id = i.item_id), 0) AS allocated_quantity FROM items i LEFT JOIN categories c ON i.category_id = c.category_id $where ORDER BY {$sort_columns[$sort_by]} $sort_direction, i.item_id ASC LIMIT ? OFFSET ?";
 $stmt = $conn->prepare($sql);
 $limit_params = $params;
 $limit_params[] = $per_page;
@@ -91,12 +91,18 @@ $categories = $conn->query("SELECT * FROM categories ORDER BY category_name ASC"
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 <?php endif; ?>
+<?php if (isset($_GET['error'])): ?>
+    <div class="alert alert-danger alert-dismissible">
+        <?php echo htmlspecialchars($_GET['error']); ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+<?php endif; ?>
 
 <div class="card border-0 shadow-sm mb-3 filter-toolbar inventory-toolbar">
     <div class="card-body">
         <form method="GET" class="row g-2">
             <div class="col-md-5">
-                <input type="text" name="search" class="form-control" placeholder="Search by name, tracking no., serial no..." value="<?php echo htmlspecialchars($search); ?>">
+                <input type="text" name="search" class="form-control" placeholder="Search by name, property no., tracking no., serial no..." value="<?php echo htmlspecialchars($search); ?>">
             </div>
             <div class="col-md-3">
                 <select name="category" class="form-select">
@@ -155,6 +161,7 @@ $categories = $conn->query("SELECT * FROM categories ORDER BY category_name ASC"
                     <th rowspan="2">Unit Value</th>
                     <th rowspan="2">Balance</th>
                     <th rowspan="2">On Hand</th>
+                    <th rowspan="2">Available</th>
                     <th colspan="2" class="text-center">Shortage / Overage</th>
                     <th rowspan="2">Remarks</th>
                     <th rowspan="2">Actions</th>
@@ -176,6 +183,7 @@ $categories = $conn->query("SELECT * FROM categories ORDER BY category_name ASC"
                         <td><?php echo number_format((float)($row['unit_value'] ?? 0), 2); ?></td>
                         <td><?php echo (int)($row['balance_per_card'] ?? $row['quantity']); ?></td>
                         <td><?php echo (int)($row['on_hand_per_count'] ?? $row['quantity']); ?></td>
+                        <td><strong><?php echo max(0, (int)$row['quantity'] - (int)$row['allocated_quantity']); ?></strong></td>
                         <td><?php echo (int)($row['shortage_overage_qty'] ?? 0); ?></td>
                         <td><?php echo number_format((float)($row['shortage_overage_value'] ?? 0), 2); ?></td>
                         <td><?php echo htmlspecialchars($row['remarks'] ?: ($row['notes'] ?: $row['condition_status'])); ?></td>
@@ -183,7 +191,7 @@ $categories = $conn->query("SELECT * FROM categories ORDER BY category_name ASC"
                             <a href="view.php?id=<?php echo $row['item_id']; ?>" class="btn btn-sm btn-outline-primary" title="View">
                                 <i class="bi bi-eye"></i>
                             </a>
-                            <?php if (hasAnyRole(['admin', 'super_admin'])): ?>
+                            <?php if (hasAnyRole(['admin', 'super_admin', 'treasurer'])): ?>
                                 <a href="edit.php?id=<?php echo $row['item_id']; ?>" class="btn btn-sm btn-outline-warning" title="Edit">
                                     <i class="bi bi-pencil"></i>
                                 </a>
@@ -199,7 +207,7 @@ $categories = $conn->query("SELECT * FROM categories ORDER BY category_name ASC"
                     </tr>
                     <?php endwhile; ?>
                 <?php else: ?>
-                    <tr><td colspan="12" class="text-center text-muted py-4">No items found.</td></tr>
+                    <tr><td colspan="13" class="text-center text-muted py-4">No items found.</td></tr>
                 <?php endif; ?>
             </tbody>
         </table>

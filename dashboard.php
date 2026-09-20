@@ -31,7 +31,7 @@ $recent = $conn->query("SELECT i.*, c.category_name FROM items i LEFT JOIN categ
     <strong><?php echo htmlspecialchars($_SESSION['full_name']); ?></strong>,
     <?php if ($current_role === 'treasurer'): ?>review stock accountability and outstanding borrowed items.
     <?php elseif ($current_role === 'secretary'): ?>record new inventory and logbook transactions quickly.
-    <?php elseif ($current_role === 'committee'): ?>review inventory condition and update the records that need attention.
+    <?php elseif ($current_role === 'committee'): ?>review inventory condition and report the records that need attention.
     <?php else: ?>monitor system activity and keep inventory records controlled.
     <?php endif; ?>
 </div>
@@ -85,16 +85,13 @@ $recent = $conn->query("SELECT i.*, c.category_name FROM items i LEFT JOIN categ
     </div>
     <?php elseif ($current_role === 'committee'): ?>
     <div class="col-md-6">
-        <div class="card border-0 shadow-sm h-100"><div class="card-body"><h6 class="fw-bold"><i class="bi bi-clipboard-check me-2 text-success"></i>Inventory Review</h6><p class="mb-2">Check item conditions and review the latest inventory records.</p><a href="/stocktrack/modules/inventory/index.php" class="btn btn-sm btn-outline-primary">Review inventory</a><a href="/stocktrack/modules/inventory/history.php" class="btn btn-sm btn-outline-secondary ms-2">View history</a></div></div>
+        <div class="card border-0 shadow-sm h-100"><div class="card-body"><h6 class="fw-bold"><i class="bi bi-clipboard-check me-2 text-success"></i>Inventory Review</h6><p class="mb-2">Check item conditions and report records that need administrator attention.</p><a href="/stocktrack/modules/inventory/index.php" class="btn btn-sm btn-outline-primary">Review inventory</a><a href="/stocktrack/modules/inventory/history.php" class="btn btn-sm btn-outline-secondary ms-2">View history</a></div></div>
     </div>
     <?php else: ?>
     <div class="col-md-6">
         <div class="card border-0 shadow-sm h-100"><div class="card-body"><h6 class="fw-bold"><i class="bi bi-shield-check me-2 text-primary"></i>System Oversight</h6><p class="mb-2">Review recent security and data activity.</p><a href="/stocktrack/modules/audit/index.php" class="btn btn-sm btn-outline-primary">Open activity log</a></div></div>
     </div>
     <?php endif; ?>
-    <div class="col-md-6">
-        <div class="card border-0 shadow-sm h-100"><div class="card-body"><h6 class="fw-bold"><i class="bi bi-box-seam me-2 text-primary"></i>Stock Snapshot</h6><p class="mb-2"><strong><?php echo (int)$serviceable; ?></strong> serviceable and <strong><?php echo (int)$unserviceable; ?></strong> unserviceable item(s).</p><a href="/stocktrack/modules/inventory/index.php" class="btn btn-sm btn-outline-primary">Open inventory</a></div></div>
-    </div>
 </div>
 
 <?php if ($current_role === 'admin' && $recent_activity): ?>

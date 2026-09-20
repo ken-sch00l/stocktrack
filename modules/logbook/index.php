@@ -25,10 +25,10 @@ $where = 'WHERE 1=1';
 $params = [];
 $types = '';
 if ($search) {
-    $where .= " AND (i.item_name LIKE ? OR i.tracking_number LIKE ? OR l.borrowed_by LIKE ?)";
+    $where .= " AND (i.item_name LIKE ? OR i.tracking_number LIKE ? OR i.property_ics_number LIKE ? OR l.borrowed_by LIKE ? OR l.purpose LIKE ?)";
     $search_value = "%$search%";
-    array_push($params, $search_value, $search_value, $search_value);
-    $types .= 'sss';
+    array_push($params, $search_value, $search_value, $search_value, $search_value, $search_value);
+    $types .= 'sssss';
 }
 if (in_array($action_filter, ['Borrowed', 'Used', 'Returned'], true)) {
     $where .= ' AND l.action = ?';
@@ -79,7 +79,7 @@ $outstanding = $conn->query("SELECT l.borrowed_by, COALESCE(SUM(CASE WHEN l.acti
         <form method="GET" class="row g-2 align-items-end">
             <div class="col-md-3">
                 <label class="form-label">Search</label>
-                <input type="text" name="search" class="form-control" placeholder="Item, tracking no., borrower" value="<?php echo htmlspecialchars($search); ?>">
+                <input type="text" name="search" class="form-control" placeholder="Item, property no., tracking no., borrower, purpose" value="<?php echo htmlspecialchars($search); ?>">
             </div>
             <div class="col-md-2">
                 <label class="form-label">Action</label>

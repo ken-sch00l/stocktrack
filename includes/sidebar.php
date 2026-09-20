@@ -56,6 +56,11 @@
                 <i class="bi bi-people me-2"></i>Users
             </a>
         </li>
+        <?php endif; ?>
+        <?php if (hasAnyRole(['admin', 'super_admin', 'treasurer'])): ?>
+        <li class="nav-item <?php echo hasAnyRole(['admin', 'super_admin']) ? 'mt-2' : 'mt-3'; ?>">
+            <span class="text-muted small px-2">OVERSIGHT</span>
+        </li>
         <li class="nav-item">
             <a href="/stocktrack/modules/audit/index.php" class="nav-link text-white <?php echo strpos($current_path, '/modules/audit/') === 0 ? 'active' : ''; ?>">
                 <i class="bi bi-shield-check me-2"></i>Activity Log

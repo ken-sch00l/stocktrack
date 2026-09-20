@@ -4,13 +4,8 @@ requireLogin();
 requirePermission('manage_users');
 require_once '../../includes/db.php';
 
-$user_sort = $_GET['sort'] ?? 'name';
-$user_direction = strtoupper($_GET['direction'] ?? 'ASC');
-$user_sort_columns = ['name' => 'full_name', 'username' => 'username', 'role' => 'role', 'date' => 'created_at'];
-$user_sort = array_key_exists($user_sort, $user_sort_columns) ? $user_sort : 'name';
-$user_direction = in_array($user_direction, ['ASC', 'DESC'], true) ? $user_direction : 'ASC';
 $user_visibility = hasRole('super_admin') ? '' : "WHERE role <> 'super_admin'";
-$users = $conn->query("SELECT * FROM users $user_visibility ORDER BY {$user_sort_columns[$user_sort]} $user_direction");
+$users = $conn->query("SELECT * FROM users $user_visibility ORDER BY full_name ASC, user_id ASC");
 ?>
 <?php require_once '../../includes/header.php'; ?>
 <?php require_once '../../includes/sidebar.php'; ?>
@@ -28,12 +23,6 @@ $users = $conn->query("SELECT * FROM users $user_visibility ORDER BY {$user_sort
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 <?php endif; ?>
-
-<form method="GET" class="row g-2 mb-3 align-items-end filter-toolbar">
-    <div class="col-md-4"><label class="form-label">Sort users by</label><select name="sort" class="form-select"><option value="name" <?php echo $user_sort === 'name' ? 'selected' : ''; ?>>Name</option><option value="username" <?php echo $user_sort === 'username' ? 'selected' : ''; ?>>Username</option><option value="role" <?php echo $user_sort === 'role' ? 'selected' : ''; ?>>Role</option><option value="date" <?php echo $user_sort === 'date' ? 'selected' : ''; ?>>Date added</option></select></div>
-    <div class="col-md-4"><label class="form-label">Direction</label><select name="direction" class="form-select"><option value="ASC" <?php echo $user_direction === 'ASC' ? 'selected' : ''; ?>>Ascending</option><option value="DESC" <?php echo $user_direction === 'DESC' ? 'selected' : ''; ?>>Descending</option></select></div>
-    <div class="col-md-4"><button type="submit" class="btn btn-outline-primary">Apply sorting</button></div>
-</form>
 
 <?php if (isset($_SESSION['temporary_user_credentials'])): ?>
     <div class="alert alert-warning">

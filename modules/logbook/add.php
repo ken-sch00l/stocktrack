@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf_token();
     $form_item_id = $_POST['item_id'] ?? '';
     $form_action = $_POST['action'] ?? 'Borrowed';
-    $form_quantity = $_POST['quantity'] ?? 1;
+    $form_quantity = $_POST['quantity'] ?? '';
     $form_borrowed_by = trim($_POST['borrowed_by'] ?? '');
     $form_purpose = trim($_POST['purpose'] ?? '');
     $form_date_action = $_POST['date_action'] ?? '';
@@ -40,12 +40,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $recorded_by  = $_SESSION['user_id'];
 
     $allowed_actions = ['Borrowed', 'Used', 'Returned'];
-    if (!$item_id || !$borrowed_by || !$date_action) {
+    if (!$item_id || !$borrowed_by || !$date_action || !array_key_exists('quantity', $_POST) || $form_quantity === '') {
         $error = "Please fill in all required fields.";
     } elseif (!in_array($action, $allowed_actions, true)) {
         $error = "Invalid logbook action.";
     } elseif ($quantity < 1) {
         $error = "Quantity must be at least 1.";
+    } elseif ($action === 'Returned' && !$date_returned) {
+        $error = "Date returned is required for a return transaction.";
     } elseif ($action === 'Returned' && !(int)$form_return_for_log_id) {
         $error = "Select the specific borrowing transaction being returned.";
     } else {
@@ -181,8 +183,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <small class="text-muted">This ties the return to the exact borrower and item.</small>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">Quantity</label>
-                    <input type="number" name="quantity" class="form-control" value="<?php echo htmlspecialchars((string)$form_quantity, ENT_QUOTES, 'UTF-8'); ?>" min="1">
+                    <label class="form-label">Quantity <span class="text-danger">*</span></label>
+                    <input type="number" name="quantity" class="form-control" value="<?php echo htmlspecialchars((string)$form_quantity, ENT_QUOTES, 'UTF-8'); ?>" min="1" required>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Borrowed/Used By <span class="text-danger">*</span></label>
@@ -197,7 +199,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <input type="date" name="date_action" class="form-control" value="<?php echo htmlspecialchars($form_date_action, ENT_QUOTES, 'UTF-8'); ?>" required>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Date Returned <small class="text-muted">(if applicable)</small></label>
+                    <label class="form-label">Date Returned <span id="dateReturnedRequired" class="text-danger">*</span><small class="text-muted"> (required for returns)</small></label>
                     <input type="date" name="date_returned" class="form-control" value="<?php echo htmlspecialchars($form_date_returned, ENT_QUOTES, 'UTF-8'); ?>">
                 </div>
                 <div class="col-12">
@@ -218,6 +220,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     const stockTracker = document.getElementById('stockTracker');
     const returnTransactionField = document.getElementById('returnTransactionField');
     const returnTransactionSelect = document.querySelector('select[name="return_for_log_id"]');
+    const dateReturnedInput = document.querySelector('input[name="date_returned"]');
+    const dateReturnedRequired = document.getElementById('dateReturnedRequired');
     let latestStock = null;
 
     function renderStockTracker(stock) {
@@ -267,9 +271,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     itemSelect.addEventListener('change', refreshStockTracker);
     actionSelect.addEventListener('change', function() {
         returnTransactionField.style.display = actionSelect.value === 'Returned' ? 'block' : 'none';
+        returnTransactionSelect.required = actionSelect.value === 'Returned';
+        dateReturnedInput.required = actionSelect.value === 'Returned';
+        dateReturnedRequired.style.display = actionSelect.value === 'Returned' ? 'inline' : 'none';
         if (latestStock) renderStockTracker(latestStock);
     });
     returnTransactionField.style.display = actionSelect.value === 'Returned' ? 'block' : 'none';
+    returnTransactionSelect.required = actionSelect.value === 'Returned';
+    dateReturnedInput.required = actionSelect.value === 'Returned';
+    dateReturnedRequired.style.display = actionSelect.value === 'Returned' ? 'inline' : 'none';
     refreshStockTracker();
     setInterval(refreshStockTracker, 10000);
 </script>

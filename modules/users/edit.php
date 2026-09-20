@@ -49,7 +49,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Username already exists.';
         } else {
             if ($reset_password) {
-                $hashed_password = password_hash('123456', PASSWORD_DEFAULT);
+                $temporary_password = bin2hex(random_bytes(6));
+                $hashed_password = password_hash($temporary_password, PASSWORD_DEFAULT);
                 $update = $conn->prepare("UPDATE users SET full_name = ?, username = ?, role = ?, password = ?, must_change_password = 1 WHERE user_id = ?");
                 $update->bind_param("ssssi", $form_full_name, $form_username, $form_role, $hashed_password, $id);
             } else {
@@ -58,8 +59,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if ($update->execute()) {
-                recordAudit($reset_password ? 'user_password_reset' : 'user_updated', 'user', $id, $reset_password ? 'Password reset to temporary default' : 'Account details updated');
-                $message = $reset_password ? 'User account updated and password reset to 123456.' : 'User account updated successfully.';
+                if ($reset_password) {
+                    $_SESSION['temporary_user_credentials'] = [
+                        'username' => $form_username,
+                        'password' => $temporary_password
+                    ];
+                }
+                recordAudit($reset_password ? 'user_password_reset' : 'user_updated', 'user', $id, $reset_password ? 'Password reset to a random temporary password' : 'Account details updated');
+                $message = $reset_password ? 'User account updated and a temporary password was generated.' : 'User account updated successfully.';
                 header("Location: /stocktrack/modules/users/index.php?success=" . urlencode($message));
                 exit();
             }
@@ -106,12 +113,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 <div class="col-12">
                     <div class="alert alert-warning mb-0">
-                        <i class="bi bi-key me-2"></i>Password reset sets the password to <strong>123456</strong> and forces the user to change it after login.
+                        <i class="bi bi-key me-2"></i>Password reset generates a random temporary password and forces the user to change it after login.
                     </div>
                 </div>
                 <div class="col-12">
                     <button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i>Save Account</button>
-                    <button type="submit" name="reset_password" value="1" class="btn btn-warning ms-2" onclick="return confirm('Reset this account password to 123456? The user must change it after login.');"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset Password</button>
+                    <button type="submit" name="reset_password" value="1" class="btn btn-warning ms-2" onclick="return confirm('Generate a new temporary password? The user must change it after login.');"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset Password</button>
                     <a href="index.php" class="btn btn-outline-secondary ms-2">Cancel</a>
                 </div>
             </div>

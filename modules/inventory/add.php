@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $serial_number             = trim((string)($_POST['serial_number'] ?? ''));
     $category_id               = (int)($_POST['category_id'] ?? 0);
     $category_id               = $category_id > 0 ? $category_id : null;
-    $condition                 = $_POST['condition_status'] ?? 'Serviceable';
+    $condition                 = $_POST['condition_status'] ?? '';
     $condition                 = in_array($condition, ['Serviceable', 'Unserviceable'], true) ? $condition : 'Serviceable';
     $date_acquired             = ($_POST['date_acquired'] ?? '') ?: null;
     $unit_measure              = trim((string)($_POST['unit_measure'] ?? ''));
@@ -50,8 +50,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $remarks                   = trim((string)($_POST['remarks'] ?? ''));
     $created_by                = $_SESSION['user_id'];
 
-    $temporary_tracking_number = 'TMP-' . bin2hex(random_bytes(16));
-    $conn->begin_transaction();
+    if (!$item_name || !$date_acquired || !$unit_measure || !array_key_exists('on_hand_per_count', $_POST) || $on_hand_per_count < 0 || !in_array($condition, ['Serviceable', 'Unserviceable'], true)) {
+        $error = 'Description, date acquired, unit of measure, on-hand quantity, and condition are required.';
+    }
+
+    if (!$error) {
+        $temporary_tracking_number = 'TMP-' . bin2hex(random_bytes(16));
+        $conn->begin_transaction();
 
         $stmt = $conn->prepare("INSERT INTO items (tracking_number, property_ics_number, serial_number, item_name, category_id, condition_status, quantity, unit, date_purchased, date_acquired, unit_measure, unit_value, balance_per_card, on_hand_per_count, shortage_overage_qty, shortage_overage_value, person_in_charge, position, last_inventory_date, remarks, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         $stmt->bind_param("ssssisissssdiiidssssi", $temporary_tracking_number, $property_ics_number, $serial_number, $item_name, $category_id, $condition, $quantity, $unit, $date_purchased, $date_acquired, $unit_measure, $unit_value, $balance_per_card, $on_hand_per_count, $shortage_overage_qty, $shortage_overage_value, $person_charge, $position, $last_inventory, $remarks, $created_by);
@@ -75,6 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $conn->rollback();
             $error = "Failed to add item. Please try again.";
+        }
     }
 }
 ?>
@@ -104,16 +110,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 <div class="paper-entry-field span-3">
                     <label class="paper-entry-label">Description</label>
-                    <input type="text" name="item_name" class="paper-entry-input" value="<?php echo htmlspecialchars($form['item_name'] ?? ''); ?>" placeholder="Item name">
+                    <input type="text" name="item_name" class="paper-entry-input" value="<?php echo htmlspecialchars($form['item_name'] ?? ''); ?>" placeholder="Item name" required>
                     <div class="form-text">Example: Motorcycle, Printer, or Monoblock Chair.</div>
                 </div>
                 <div class="paper-entry-field span-2">
                     <label class="paper-entry-label">Date Acquired</label>
-                    <input type="date" name="date_acquired" class="paper-entry-input" value="<?php echo htmlspecialchars($form['date_acquired'] ?? ''); ?>">
+                    <input type="date" name="date_acquired" class="paper-entry-input" value="<?php echo htmlspecialchars($form['date_acquired'] ?? ''); ?>" required>
                 </div>
                 <div class="paper-entry-field span-1">
                     <label class="paper-entry-label">Unit of Measure</label>
-                    <input type="text" name="unit_measure" class="paper-entry-input" value="<?php echo htmlspecialchars($form['unit_measure'] ?? ''); ?>" placeholder="e.g. pcs, set, meter">
+                    <input type="text" name="unit_measure" class="paper-entry-input" value="<?php echo htmlspecialchars($form['unit_measure'] ?? ''); ?>" placeholder="e.g. pcs, set, meter" required>
                 </div>
                 <div class="paper-entry-field span-2">
                     <label class="paper-entry-label">Unit Value</label>
@@ -125,7 +131,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 <div class="paper-entry-field span-1">
                     <label class="paper-entry-label">On Hand</label>
-                    <input type="number" name="on_hand_per_count" class="paper-entry-input" value="<?php echo htmlspecialchars($form['on_hand_per_count'] ?? ''); ?>" placeholder="e.g. 1" min="0">
+                    <input type="number" name="on_hand_per_count" class="paper-entry-input" value="<?php echo htmlspecialchars($form['on_hand_per_count'] ?? ''); ?>" placeholder="e.g. 1" min="0" required>
                 </div>
                 <div class="paper-entry-field span-2 variance-field">
                     <label class="paper-entry-label">Shortage / Overage Quantity</label>
@@ -154,8 +160,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 <div class="paper-entry-field span-2">
                     <label class="paper-entry-label">Condition</label>
-                    <select name="condition_status" class="paper-entry-input">
-                        <option value="">Select condition (optional)</option>
+                    <select name="condition_status" class="paper-entry-input" required>
+                        <option value="">Select condition</option>
                         <option value="Serviceable" <?php echo $form['condition_status'] === 'Serviceable' ? 'selected' : ''; ?>>Serviceable</option>
                         <option value="Unserviceable" <?php echo $form['condition_status'] === 'Unserviceable' ? 'selected' : ''; ?>>Unserviceable</option>
                     </select>

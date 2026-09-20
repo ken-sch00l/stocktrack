@@ -1,5 +1,7 @@
 <?php
 $is_https = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+ini_set('session.use_strict_mode', '1');
+ini_set('session.use_only_cookies', '1');
 session_set_cookie_params([
     'lifetime' => 0,
     'path' => '/',
@@ -24,6 +26,27 @@ function requireLogin() {
         header("Location: /stocktrack/login.php");
         exit();
     }
+
+    global $conn;
+    if (!isset($conn)) {
+        require_once __DIR__ . '/db.php';
+    }
+
+    $stmt = $conn->prepare("SELECT user_id, full_name, role, must_change_password FROM users WHERE user_id = ?");
+    $stmt->bind_param("i", $_SESSION['user_id']);
+    $stmt->execute();
+    $user = $stmt->get_result()->fetch_assoc();
+    if (!$user) {
+        $_SESSION = [];
+        session_destroy();
+        header("Location: /stocktrack/login.php");
+        exit();
+    }
+
+    $_SESSION['full_name'] = $user['full_name'];
+    $_SESSION['role'] = $user['role'];
+    $_SESSION['must_change_password'] = (int)$user['must_change_password'];
+
     if (!empty($_SESSION['must_change_password']) && basename($_SERVER['PHP_SELF']) !== 'change_password.php') {
         header("Location: /stocktrack/change_password.php");
         exit();
@@ -50,11 +73,11 @@ function requirePermission($permission) {
     $permissions = [
         'view' => ['admin', 'super_admin', 'secretary', 'treasurer', 'committee'],
         'add' => ['admin', 'super_admin', 'secretary', 'treasurer', 'committee'],
-        'edit' => ['admin', 'super_admin'],
+        'edit' => ['admin', 'super_admin', 'treasurer'],
         'delete' => ['admin', 'super_admin'],
         'manage_users' => ['admin', 'super_admin'],
         'manage_categories' => ['admin', 'super_admin'],
-        'view_audit' => ['admin', 'super_admin'],
+        'view_audit' => ['admin', 'super_admin', 'treasurer'],
         'view_notifications' => ['admin', 'super_admin', 'treasurer']
     ];
 
@@ -133,8 +156,17 @@ function recordAudit($action, $entity_type = null, $entity_id = null, $details =
 
     $user_id = $_SESSION['user_id'] ?? null;
     $stmt = $conn->prepare("INSERT INTO audit_log (user_id, action, entity_type, entity_id, details, ip_address) VALUES (?, ?, ?, ?, ?, ?)");
+    if (!$stmt) {
+        error_log('StockTrack audit statement preparation failed: ' . $conn->error);
+        return false;
+    }
     $ip_address = $_SERVER['REMOTE_ADDR'] ?? null;
     $stmt->bind_param("ississ", $user_id, $action, $entity_type, $entity_id, $details, $ip_address);
-    $stmt->execute();
+    if (!$stmt->execute()) {
+        error_log('StockTrack audit record failed: ' . $stmt->error);
+        return false;
+    }
+
+    return true;
 }
 ?>

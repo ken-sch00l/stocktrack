@@ -5,7 +5,7 @@ requirePermission('view_notifications');
 require_once '../../includes/db.php';
 
 $filter = $_GET['filter'] ?? 'all';
-$allowed_filters = ['all', 'unread', 'borrowed', 'returned'];
+$allowed_filters = ['all', 'unread', 'borrowed', 'used', 'returned'];
 $filter = in_array($filter, $allowed_filters, true) ? $filter : 'all';
 $sort = $_GET['sort'] ?? 'date';
 $direction = strtoupper($_GET['direction'] ?? 'DESC');
@@ -28,6 +28,8 @@ if ($filter === 'unread') {
     $notification_where .= ' AND is_read = 0';
 } elseif ($filter === 'borrowed') {
     $notification_where .= " AND notification_type = 'logbook_borrowed'";
+} elseif ($filter === 'used') {
+    $notification_where .= " AND notification_type = 'logbook_used'";
 } elseif ($filter === 'returned') {
     $notification_where .= " AND notification_type = 'logbook_returned'";
 }
@@ -35,7 +37,7 @@ $notifications = $conn->prepare("SELECT * FROM notifications $notification_where
 $notifications->bind_param($notification_types, ...$notification_params);
 $notifications->execute();
 $notifications = $notifications->get_result();
-$notification_stats = $conn->prepare("SELECT COUNT(*) AS total_count, SUM(is_read = 0) AS unread_count, SUM(notification_type = 'logbook_borrowed') AS borrowed_count, SUM(notification_type = 'logbook_returned') AS returned_count FROM notifications WHERE recipient_user_id = ?");
+$notification_stats = $conn->prepare("SELECT COUNT(*) AS total_count, SUM(is_read = 0) AS unread_count, SUM(notification_type = 'logbook_borrowed') AS borrowed_count, SUM(notification_type = 'logbook_used') AS used_count, SUM(notification_type = 'logbook_returned') AS returned_count FROM notifications WHERE recipient_user_id = ?");
 $notification_stats->bind_param("i", $_SESSION['user_id']);
 $notification_stats->execute();
 $notification_stats = $notification_stats->get_result()->fetch_assoc();
@@ -51,6 +53,7 @@ $notification_stats = $notification_stats->get_result()->fetch_assoc();
     <div class="col-md-3"><a href="?filter=all" class="card stat-card stat-card-link text-center p-3 h-100"><div class="text-primary fs-2"><i class="bi bi-bell"></i></div><h3 class="fw-bold mb-0"><?php echo (int)($notification_stats['total_count'] ?? 0); ?></h3><small class="text-muted">All notifications</small></a></div>
     <div class="col-md-3"><a href="?filter=unread" class="card stat-card stat-card-link text-center p-3 h-100"><div class="text-warning fs-2"><i class="bi bi-envelope"></i></div><h3 class="fw-bold mb-0"><?php echo (int)($notification_stats['unread_count'] ?? 0); ?></h3><small class="text-muted">Unread</small></a></div>
     <div class="col-md-3"><a href="?filter=borrowed" class="card stat-card stat-card-link text-center p-3 h-100"><div class="text-danger fs-2"><i class="bi bi-box-arrow-right"></i></div><h3 class="fw-bold mb-0"><?php echo (int)($notification_stats['borrowed_count'] ?? 0); ?></h3><small class="text-muted">Borrowed alerts</small></a></div>
+    <div class="col-md-3"><a href="?filter=used" class="card stat-card stat-card-link text-center p-3 h-100"><div class="text-warning fs-2"><i class="bi bi-box-arrow-up-right"></i></div><h3 class="fw-bold mb-0"><?php echo (int)($notification_stats['used_count'] ?? 0); ?></h3><small class="text-muted">Used alerts</small></a></div>
     <div class="col-md-3"><a href="?filter=returned" class="card stat-card stat-card-link text-center p-3 h-100"><div class="text-success fs-2"><i class="bi bi-box-arrow-in-left"></i></div><h3 class="fw-bold mb-0"><?php echo (int)($notification_stats['returned_count'] ?? 0); ?></h3><small class="text-muted">Returned alerts</small></a></div>
 </div>
 <div class="card border-0 shadow-sm mb-3 filter-toolbar">

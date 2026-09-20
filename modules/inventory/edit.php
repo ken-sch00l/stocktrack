@@ -41,7 +41,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $last_inventory           = ($_POST['last_inventory_date'] ?? '') ?: null;
     $remarks                  = trim((string)($_POST['remarks'] ?? ''));
 
-    $stmt = $conn->prepare("UPDATE items SET property_ics_number=?, serial_number=?, item_name=?, category_id=?, condition_status=?, quantity=?, unit=?, date_purchased=?, date_acquired=?, unit_measure=?, unit_value=?, balance_per_card=?, on_hand_per_count=?, shortage_overage_qty=?, shortage_overage_value=?, person_in_charge=?, position=?, last_inventory_date=?, remarks=?, updated_at=NOW() WHERE item_id=?");
+    $usage_stmt = $conn->prepare("SELECT COALESCE(SUM(CASE WHEN action = 'Borrowed' THEN quantity WHEN action = 'Used' THEN quantity WHEN action = 'Returned' THEN -quantity ELSE 0 END), 0) AS allocated_quantity FROM logbook WHERE item_id = ?");
+    $usage_stmt->bind_param("i", $id);
+    $usage_stmt->execute();
+    $allocated_quantity = (int)$usage_stmt->get_result()->fetch_assoc()['allocated_quantity'];
+
+    if (!$item_name || !$date_acquired || !$unit_measure) {
+        $error = 'Description, date acquired, and unit of measure are required.';
+    } elseif ($quantity < $allocated_quantity) {
+        $error = "On-hand quantity cannot be lower than the {$allocated_quantity} item(s) currently allocated or borrowed.";
+    }
+
+    if (!$error) {
+        $stmt = $conn->prepare("UPDATE items SET property_ics_number=?, serial_number=?, item_name=?, category_id=?, condition_status=?, quantity=?, unit=?, date_purchased=?, date_acquired=?, unit_measure=?, unit_value=?, balance_per_card=?, on_hand_per_count=?, shortage_overage_qty=?, shortage_overage_value=?, person_in_charge=?, position=?, last_inventory_date=?, remarks=?, updated_at=NOW() WHERE item_id=?");
         $stmt->bind_param("sssisissssdiiidssssi", $property_ics_number, $serial_number, $item_name, $category_id, $condition, $quantity, $unit, $date_purchased, $date_acquired, $unit_measure, $unit_value, $balance_per_card, $on_hand_per_count, $shortage_overage_qty, $shortage_overage_value, $person_charge, $position, $last_inventory, $remarks, $id);
 
         if ($stmt->execute()) {
@@ -50,6 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit();
         } else {
             $error = "Failed to update item. Please try again.";
+        }
     }
 }
 ?>
@@ -79,16 +92,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 <div class="paper-entry-field span-3">
                     <label class="paper-entry-label">Description</label>
-                    <input type="text" name="item_name" class="paper-entry-input" value="<?php echo htmlspecialchars($form['item_name']); ?>" placeholder="e.g. Motorcycle">
+                    <input type="text" name="item_name" class="paper-entry-input" value="<?php echo htmlspecialchars($form['item_name']); ?>" placeholder="e.g. Motorcycle" required>
                     <div class="form-text">Leave blank if the description is not available yet.</div>
                 </div>
                 <div class="paper-entry-field span-2">
                     <label class="paper-entry-label">Date Acquired</label>
-                    <input type="date" name="date_acquired" class="paper-entry-input" value="<?php echo htmlspecialchars($form['date_acquired'] ?: $form['date_purchased']); ?>">
+                    <input type="date" name="date_acquired" class="paper-entry-input" value="<?php echo htmlspecialchars($form['date_acquired'] ?: $form['date_purchased']); ?>" required>
                 </div>
                 <div class="paper-entry-field span-1">
                     <label class="paper-entry-label">Unit of Measure</label>
-                    <input type="text" name="unit_measure" class="paper-entry-input" value="<?php echo htmlspecialchars($form['unit_measure'] ?: $form['unit']); ?>">
+                    <input type="text" name="unit_measure" class="paper-entry-input" value="<?php echo htmlspecialchars($form['unit_measure'] ?: $form['unit']); ?>" required>
                 </div>
                 <div class="paper-entry-field span-2">
                     <label class="paper-entry-label">Unit Value</label>
@@ -100,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 <div class="paper-entry-field span-1">
                     <label class="paper-entry-label">On Hand</label>
-                    <input type="number" name="on_hand_per_count" class="paper-entry-input" value="<?php echo htmlspecialchars($form['on_hand_per_count'] ?? $form['quantity']); ?>" min="0">
+                    <input type="number" name="on_hand_per_count" class="paper-entry-input" value="<?php echo htmlspecialchars($form['on_hand_per_count'] ?? $form['quantity']); ?>" min="0" required>
                 </div>
                 <div class="paper-entry-field span-2 variance-field">
                     <label class="paper-entry-label">Shortage / Overage Quantity</label>
@@ -131,7 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 <div class="paper-entry-field span-2">
                     <label class="paper-entry-label">Condition</label>
-                    <select name="condition_status" class="paper-entry-input">
+                    <select name="condition_status" class="paper-entry-input" required>
                         <option value="Serviceable" <?php echo $form['condition_status'] === 'Serviceable' ? 'selected' : ''; ?>>Serviceable</option>
                         <option value="Unserviceable" <?php echo $form['condition_status'] === 'Unserviceable' ? 'selected' : ''; ?>>Unserviceable</option>
                     </select>
