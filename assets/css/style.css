@@ -453,6 +453,18 @@ form.filter-toolbar {
     margin: 0 auto .5rem;
 }
 
+.report-paper-header [contenteditable="true"] {
+    outline: 1px dashed #9aa9b8;
+    outline-offset: 2px;
+}
+
+.report-settings-preview {
+    border: 1px solid #d8dee6;
+    min-height: 280px;
+    padding: 1.5rem;
+    background: #fff;
+}
+
 .report-header-canvas {
     position: relative;
     min-height: 220px;
@@ -552,7 +564,7 @@ form.filter-toolbar {
 }
 
 @media print {
-    .sidebar, .navbar, .btn, .no-print {
+    .sidebar, .navbar, .btn, .no-print, .report-preview-notice {
         display: none !important;
     }
     .content {
@@ -578,6 +590,9 @@ form.filter-toolbar {
         cursor: default;
         print-color-adjust: exact;
         -webkit-print-color-adjust: exact;
+    }
+    [contenteditable="true"] {
+        outline: 0 !important;
     }
     .logo-resize-handle {
         display: none;

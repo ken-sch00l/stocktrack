@@ -3,6 +3,9 @@ require_once '../../includes/auth.php';
 requireLogin();
 requirePermission('add');
 require_once '../../includes/db.php';
+require_once '../../includes/settings.php';
+
+$report_settings = get_report_settings();
 
 $type = isset($_GET['type']) ? $_GET['type'] : 'ICS';
 $allowed_types = ['RIS', 'ICS', 'RIPE', 'PAR'];
@@ -17,16 +20,20 @@ $error = '';
 $report_generated = false;
 $default_report_title = $type === 'RIS' ? 'REQUISITION AND ISSUE SLIP (RIS)' : ($type === 'ICS' ? 'INVENTORY CUSTODIAN SLIP (ICS)' : ($type === 'PAR' ? 'PROPERTY ACKNOWLEDGMENT RECEIPT (PAR)' : 'REPORT ON INVENTORY OF PROPERTY AND EQUIPMENT'));
 $report_config = [
-    'office_name' => trim((string)($_POST['office_name'] ?? 'BARANGAY PUGUIS')),
-    'location' => trim((string)($_POST['location'] ?? 'La Trinidad, Benguet')),
+    'office_name' => trim((string)($_POST['office_name'] ?? $report_settings['header_line_4'])),
+    'location' => trim((string)($_POST['location'] ?? $report_settings['report_place'])),
     'report_date' => trim((string)($_POST['report_date'] ?? date('F d, Y'))),
-    'fund_cluster' => trim((string)($_POST['fund_cluster'] ?? 'GENERAL FUND')),
-    'accountable_person' => trim((string)($_POST['accountable_person'] ?? 'SHEEN M. GATAN')),
-    'accountable_position' => trim((string)($_POST['accountable_position'] ?? 'Barangay Treasurer')),
-    'accountable_barangay' => trim((string)($_POST['accountable_barangay'] ?? 'Barangay Puguis')),
-    'assumption_date' => trim((string)($_POST['assumption_date'] ?? date('Y-m-d'))),
-    'prepared_by' => trim((string)($_POST['prepared_by'] ?? '')),
-    'certified_by' => trim((string)($_POST['certified_by'] ?? '')),
+    'fund_cluster' => trim((string)($_POST['fund_cluster'] ?? $report_settings['fund_cluster'])),
+    'accountable_person' => trim((string)($_POST['accountable_person'] ?? $report_settings['accountable_person'])),
+    'accountable_position' => trim((string)($_POST['accountable_position'] ?? $report_settings['accountable_position'])),
+    'accountable_barangay' => trim((string)($_POST['accountable_barangay'] ?? $report_settings['report_place'])),
+    'assumption_date' => trim((string)($_POST['assumption_date'] ?? $report_settings['assumption_date'])),
+    'prepared_by' => trim((string)($_POST['prepared_by'] ?? trim($report_settings['prepared_by_name'] . ($report_settings['prepared_by_position'] ? ', ' . $report_settings['prepared_by_position'] : '')))),
+    'certified_by' => trim((string)($_POST['certified_by'] ?? trim($report_settings['certified_by_name'] . ($report_settings['certified_by_position'] ? ', ' . $report_settings['certified_by_position'] : '')))),
+    'header_line_1' => trim((string)($_POST['header_line_1'] ?? $report_settings['header_line_1'])),
+    'header_line_2' => trim((string)($_POST['header_line_2'] ?? $report_settings['header_line_2'])),
+    'header_line_3' => trim((string)($_POST['header_line_3'] ?? $report_settings['header_line_3'])),
+    'header_line_4' => trim((string)($_POST['header_line_4'] ?? $report_settings['header_line_4'])),
     'logo_position' => ($_POST['logo_position'] ?? 'left') === 'right' ? 'right' : 'left',
     'header_title' => trim((string)($_POST['header_title'] ?? $default_report_title)),
     'header_subtitle' => trim((string)($_POST['header_subtitle'] ?? '')),
@@ -47,7 +54,7 @@ $report_config = [
     'date_x' => max(0, min(90, (float)($_POST['date_x'] ?? 25))),
     'date_y' => max(0, min(210, (float)($_POST['date_y'] ?? 182))),
 ];
-$logo_path = trim((string)($_POST['logo_path'] ?? ''));
+$logo_path = trim((string)($_POST['logo_path'] ?? get_report_logo_path($report_settings)));
 $selected_item_ids = array_values(array_filter(array_map('intval', (array)($_POST['item_ids'] ?? []))));
 $selection_submitted = array_key_exists('item_ids', $_POST);
 $export_format = $_POST['export_format'] ?? '';
@@ -74,9 +81,9 @@ function export_report_document($format, $type, $items, $config, $period_type, $
     $cell = static fn($value) => '<td>' . $escape($value) . '</td>';
     if ($type === 'RIPE') {
         $assumption_date = $config['assumption_date'] ? date('F d, Y', strtotime($config['assumption_date'])) : '________________';
-        $header .= '<td style="text-align:center"><strong>REPORT ON INVENTORY OF PROPERTY AND EQUIPMENT</strong><br>As of ' . $escape($config['report_date']) . ' at ' . $escape($config['location']) . '<br>Fund Cluster: ' . $escape($config['fund_cluster']) . '<br>For which ' . $escape($config['accountable_person']) . ', ' . $escape($config['accountable_position']) . ', ' . $escape($config['accountable_barangay']) . ' is accountable, having assumed such accountability on ' . $escape($assumption_date) . '.</td></tr></table>';
+        $header .= '<td style="text-align:center">' . $escape($config['header_line_1']) . '<br>' . $escape($config['header_line_2']) . '<br>' . $escape($config['header_line_3']) . '<br><strong>' . $escape($config['header_line_4']) . '</strong><br><br><strong>REPORT ON INVENTORY OF PROPERTY AND EQUIPMENT</strong><br>As of ' . $escape($config['report_date']) . ' at ' . $escape($config['location']) . '<br>Fund Cluster: ' . $escape($config['fund_cluster']) . '<br>For which ' . $escape($config['accountable_person']) . ', ' . $escape($config['accountable_position']) . ', ' . $escape($config['accountable_barangay']) . ' is accountable, having assumed such accountability on ' . $escape($assumption_date) . '.</td></tr></table>';
     } else {
-        $header .= '<td style="text-align:center"><strong>' . $escape($config['office_name']) . '</strong><br>' . $escape($config['location']) . '<br>';
+        $header .= '<td style="text-align:center">' . $escape($config['header_line_1']) . '<br>' . $escape($config['header_line_2']) . '<br>' . $escape($config['header_line_3']) . '<br><strong>' . $escape($config['header_line_4']) . '</strong><br>';
         if ($config['fund_cluster']) $header .= 'FUND CLUSTER: ' . $escape($config['fund_cluster']) . '<br>';
         if ($config['accountable_person']) $header .= 'Accountable for: ' . $escape($config['accountable_person']) . '<br>';
         $header .= '<hr><strong>' . $title . '</strong><br>As of ' . $escape($config['report_date']) . '</td></tr></table>';
@@ -281,9 +288,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $period_type) {
     <input type="hidden" name="period_type" value="<?php echo htmlspecialchars($period_type); ?>">
     <input type="hidden" name="period_value" value="<?php echo htmlspecialchars($period_value); ?>">
     <input type="hidden" name="logo_path" value="<?php echo htmlspecialchars($logo_path); ?>">
-    <?php foreach (['location', 'report_date', 'fund_cluster', 'accountable_person', 'accountable_position', 'accountable_barangay', 'assumption_date', 'office_name', 'prepared_by', 'certified_by'] as $report_field): ?>
+    <?php foreach (['location', 'report_date', 'fund_cluster', 'accountable_person', 'accountable_position', 'accountable_barangay', 'assumption_date', 'office_name', 'prepared_by', 'certified_by', 'header_line_1', 'header_line_2', 'header_line_3', 'header_line_4'] as $report_field): ?>
         <input type="hidden" name="<?php echo $report_field; ?>" value="<?php echo htmlspecialchars($report_config[$report_field]); ?>">
     <?php endforeach; ?>
+    <div class="alert alert-info no-print report-preview-notice" role="status"><i class="bi bi-pencil-square me-1"></i>Header text is editable for this print copy only. Changes are not saved to the database.</div>
     <div class="card border-0 shadow-sm mb-4 no-print">
         <div class="card-body">
             <div class="d-flex flex-wrap gap-2 mt-3">
@@ -298,21 +306,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $period_type) {
     <div class="card-body">
         <!-- Report Header -->
         <div class="report-paper-header mb-4 text-center">
-            <?php if ($type === 'RIPE'): ?>
-                <h5 class="fw-bold mb-2">REPORT ON INVENTORY OF PROPERTY AND EQUIPMENT</h5>
-                <p class="mb-1">As of <?php echo htmlspecialchars($report_config['report_date']); ?> at <?php echo htmlspecialchars($report_config['location']); ?></p>
-                <p class="mb-1">Fund Cluster: <?php echo htmlspecialchars($report_config['fund_cluster']); ?></p>
-                <p class="mb-1">For which <?php echo htmlspecialchars($report_config['accountable_person']); ?>, <?php echo htmlspecialchars($report_config['accountable_position']); ?>, <?php echo htmlspecialchars($report_config['accountable_barangay']); ?> is accountable, having assumed such accountability on <?php echo $report_config['assumption_date'] ? htmlspecialchars(date('F d, Y', strtotime($report_config['assumption_date']))) : '________________'; ?>.</p>
-            <?php else: ?>
-                <?php if ($logo_path): ?><img src="<?php echo htmlspecialchars($logo_path); ?>" alt="Report logo" class="report-logo-static"><?php endif; ?>
-                <h5 class="fw-bold mb-0"><?php echo htmlspecialchars($report_config['office_name']); ?></h5>
-                <p class="mb-0"><?php echo htmlspecialchars($report_config['location']); ?></p>
-                <?php if ($report_config['fund_cluster']): ?><p class="mb-0">FUND CLUSTER: <?php echo htmlspecialchars($report_config['fund_cluster']); ?></p><?php endif; ?>
-                <?php if ($report_config['accountable_person']): ?><p class="mb-0">Accountable for: <?php echo htmlspecialchars($report_config['accountable_person']); ?></p><?php endif; ?>
-                <hr>
-                <h5 class="fw-bold"><?php echo htmlspecialchars($report_config['header_title']); ?></h5>
-                <p class="mb-0">As of <?php echo htmlspecialchars($report_config['report_date']); ?></p>
-            <?php endif; ?>
+            <?php if ($logo_path): ?><div class="report-logo-caption-area" contenteditable="true"><img src="<?php echo htmlspecialchars($logo_path); ?>" alt="Report logo" class="report-logo-static"></div><?php endif; ?>
+            <div contenteditable="true"><?php echo htmlspecialchars($report_config['header_line_1']); ?></div>
+            <div contenteditable="true"><?php echo htmlspecialchars($report_config['header_line_2']); ?></div>
+            <div contenteditable="true"><?php echo htmlspecialchars($report_config['header_line_3']); ?></div>
+            <div contenteditable="true" class="fw-bold"><?php echo htmlspecialchars($report_config['header_line_4']); ?></div>
+            <h5 class="fw-bold mt-3" contenteditable="true"><?php echo $type === 'RIPE' ? 'REPORT ON INVENTORY OF PROPERTY AND EQUIPMENT' : htmlspecialchars($report_config['header_title']); ?></h5>
+            <p class="mb-1" contenteditable="true">As of <?php echo htmlspecialchars($report_config['report_date']); ?> at <?php echo htmlspecialchars($report_config['location']); ?></p>
+            <p class="mb-1" contenteditable="true">Fund Cluster: <?php echo htmlspecialchars($report_config['fund_cluster']); ?></p>
+            <p class="mb-1" contenteditable="true">For which <?php echo htmlspecialchars($report_config['accountable_person']); ?>, <?php echo htmlspecialchars($report_config['accountable_position']); ?>, <?php echo htmlspecialchars($report_config['accountable_barangay']); ?> is accountable, having assumed such accountability on <?php echo $report_config['assumption_date'] ? htmlspecialchars(date('F d, Y', strtotime($report_config['assumption_date']))) : '________________'; ?>.</p>
         </div>
 
         <?php if ($type === 'RIS'): ?>
@@ -349,13 +351,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $period_type) {
             <div class="col-md-4 text-center">
                 <div style="border-top:1px solid #000; margin-top:40px; padding-top:5px;">
                     <strong>Requested by:</strong><br>
-                    <?php echo htmlspecialchars($report_config['prepared_by'] ?: 'Barangay Secretary'); ?>
+                    <span contenteditable="true"><?php echo htmlspecialchars($report_config['prepared_by'] ?: 'Barangay Secretary'); ?></span>
                 </div>
             </div>
             <div class="col-md-4 text-center">
                 <div style="border-top:1px solid #000; margin-top:40px; padding-top:5px;">
                     <strong>Approved by:</strong><br>
-                    <?php echo htmlspecialchars($report_config['certified_by'] ?: 'Barangay Captain'); ?>
+                    <span contenteditable="true"><?php echo htmlspecialchars($report_config['certified_by'] ?: 'Barangay Captain'); ?></span>
                 </div>
             </div>
             <div class="col-md-4 text-center">
@@ -412,13 +414,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $period_type) {
             <div class="col-md-6 text-center">
                 <div style="border-top:1px solid #000; margin-top:40px; padding-top:5px;">
                     <strong>Received from:</strong><br>
-                    <?php echo htmlspecialchars($report_config['prepared_by'] ?: 'Barangay Treasurer / Property Custodian'); ?>
+                    <span contenteditable="true"><?php echo htmlspecialchars($report_config['prepared_by'] ?: 'Barangay Treasurer / Property Custodian'); ?></span>
                 </div>
             </div>
             <div class="col-md-6 text-center">
                 <div style="border-top:1px solid #000; margin-top:40px; padding-top:5px;">
                     <strong>Received by:</strong><br>
-                    <?php echo htmlspecialchars($report_config['certified_by'] ?: 'Position / Designation'); ?>
+                    <span contenteditable="true"><?php echo htmlspecialchars($report_config['certified_by'] ?: 'Position / Designation'); ?></span>
                 </div>
             </div>
         </div>
@@ -458,8 +460,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $period_type) {
             </tbody>
         </table>
         <div class="row mt-4">
-            <div class="col-md-6 text-center"><div style="border-top:1px solid #000; margin-top:40px; padding-top:5px;"><strong>Issued by:</strong><br><?php echo htmlspecialchars($report_config['prepared_by'] ?: 'Barangay Treasurer / Property Custodian'); ?></div></div>
-            <div class="col-md-6 text-center"><div style="border-top:1px solid #000; margin-top:40px; padding-top:5px;"><strong>Received by:</strong><br><?php echo htmlspecialchars($report_config['accountable_person'] ?: 'Accountable Person'); ?></div></div>
+            <div class="col-md-6 text-center"><div style="border-top:1px solid #000; margin-top:40px; padding-top:5px;"><strong>Issued by:</strong><br><span contenteditable="true"><?php echo htmlspecialchars($report_config['prepared_by'] ?: 'Barangay Treasurer / Property Custodian'); ?></span></div></div>
+            <div class="col-md-6 text-center"><div style="border-top:1px solid #000; margin-top:40px; padding-top:5px;"><strong>Received by:</strong><br><span contenteditable="true"><?php echo htmlspecialchars($report_config['accountable_person'] ?: 'Accountable Person'); ?></span></div></div>
         </div>
         <?php else: ?>
         <!-- RIPE FORMAT -->
@@ -509,13 +511,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $period_type) {
             <div class="col-md-6 text-center">
                 <div style="border-top:1px solid #000; margin-top:40px; padding-top:5px;">
                     <strong>Prepared by:</strong><br>
-                    <?php echo htmlspecialchars($report_config['prepared_by'] ?: '________________ (Name / Position)'); ?>
+                    <span contenteditable="true"><?php echo htmlspecialchars($report_config['prepared_by'] ?: '________________ (Name / Position)'); ?></span>
                 </div>
             </div>
             <div class="col-md-6 text-center">
                 <div style="border-top:1px solid #000; margin-top:40px; padding-top:5px;">
                     <strong>Certified correct by:</strong><br>
-                    <?php echo htmlspecialchars($report_config['certified_by'] ?: '________________'); ?>
+                    <span contenteditable="true"><?php echo htmlspecialchars($report_config['certified_by'] ?: '________________'); ?></span>
                 </div>
             </div>
         </div>

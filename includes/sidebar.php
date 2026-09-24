@@ -41,6 +41,13 @@
                 <i class="bi bi-file-earmark-text me-2"></i>Reports
             </a>
         </li>
+        <?php if (hasAnyRole(['admin', 'super_admin'])): ?>
+        <li class="nav-item">
+            <a href="/stocktrack/modules/reports/settings.php" class="nav-link text-white <?php echo strpos($current_path, '/modules/reports/settings.php') === 0 ? 'active' : ''; ?>">
+                <i class="bi bi-gear me-2"></i>Report Settings
+            </a>
+        </li>
+        <?php endif; ?>
         <li class="nav-item mt-3">
             <span class="text-muted small px-2">ACCOUNT</span>
         </li>
