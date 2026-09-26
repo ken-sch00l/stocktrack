@@ -241,21 +241,23 @@ $total_inventory_items = (int)$conn->query("SELECT COUNT(*) AS total FROM items"
                         <td><?php echo htmlspecialchars($row['remarks'] ?: ($row['notes'] ?: $row['condition_status'])); ?></td>
                         <td><span class="badge <?php echo $row['condition_status'] === 'Serviceable' ? 'badge-serviceable' : 'badge-unserviceable'; ?>"><?php echo htmlspecialchars($row['condition_status']); ?></span></td>
                         <td>
-                            <a href="view.php?id=<?php echo $row['item_id']; ?>" class="btn btn-sm btn-outline-primary" title="View">
-                                <i class="bi bi-eye"></i>
-                            </a>
-                            <?php if (hasAnyRole(['admin', 'super_admin', 'treasurer'])): ?>
-                                <a href="edit.php?id=<?php echo $row['item_id']; ?>" class="btn btn-sm btn-outline-warning" title="Edit">
-                                    <i class="bi bi-pencil"></i>
+                            <div class="table-action-group">
+                                <a href="view.php?id=<?php echo $row['item_id']; ?>" class="btn btn-sm btn-outline-primary" title="View">
+                                    <i class="bi bi-eye"></i>
                                 </a>
-                                <form method="POST" action="delete.php" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this item?');">
-                                    <?php csrf_field(); ?>
-                                    <input type="hidden" name="id" value="<?php echo $row['item_id']; ?>">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
-                            <?php endif; ?>
+                                <?php if (hasAnyRole(['admin', 'super_admin', 'treasurer'])): ?>
+                                    <a href="edit.php?id=<?php echo $row['item_id']; ?>" class="btn btn-sm btn-outline-warning" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <form method="POST" action="delete.php" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this item?');">
+                                        <?php csrf_field(); ?>
+                                        <input type="hidden" name="id" value="<?php echo $row['item_id']; ?>">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                <?php endif; ?>
+                            </div>
                         </td>
                     </tr>
                     <?php endwhile; ?>

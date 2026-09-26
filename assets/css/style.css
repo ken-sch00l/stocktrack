@@ -351,6 +351,20 @@ form.filter-toolbar {
     vertical-align: middle;
 }
 
+.table-action-group {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    flex-wrap: wrap;
+}
+
+.table-action-group .btn,
+.table-action-group form {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
 /* Cards */
 .stat-card {
     border-radius: 10px;
@@ -566,7 +580,7 @@ form.filter-toolbar {
         font-size: 0.75rem;
     }
 
-    .d-flex {
+    body > .d-flex {
         display: block !important;
     }
 
