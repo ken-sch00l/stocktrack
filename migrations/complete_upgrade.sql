@@ -161,4 +161,22 @@ INSERT INTO report_settings (setting_key, setting_value) VALUES
 ('logo_height', '72')
 ON DUPLICATE KEY UPDATE setting_key = VALUES(setting_key);
 
+-- 011: Add acquisition-source metadata to item records.
+ALTER TABLE items
+    ADD COLUMN acquisition_type ENUM('Purchased', 'Donated', 'Other') NOT NULL DEFAULT 'Purchased',
+    ADD COLUMN donor_name_organization VARCHAR(150) NULL,
+    ADD COLUMN donor_office_department VARCHAR(150) NULL;
+
+UPDATE items
+SET acquisition_type = 'Purchased'
+WHERE acquisition_type IS NULL;
+
+UPDATE items
+SET donor_name_organization = NULL
+WHERE donor_name_organization = '';
+
+UPDATE items
+SET donor_office_department = NULL
+WHERE donor_office_department = '';
+
 SELECT 'StockTrack upgrade complete. Verify the items, users, logbook, notifications, audit_log, and reports_log tables.' AS status;

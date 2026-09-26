@@ -11,11 +11,20 @@
 }
 
 /* StockTrack - Barangay Puguis */
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
 body {
     font-family: 'Segoe UI', sans-serif;
     background: var(--canvas);
     color: var(--ink);
     scroll-behavior: smooth;
+    min-width: 320px;
 }
 
 .app-navbar {
@@ -175,6 +184,93 @@ form.filter-toolbar {
     padding: 4px 10px;
     border-radius: 20px;
     font-size: 0.8rem;
+}
+
+.inventory-overview {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(150px, 1fr));
+    gap: 1rem;
+}
+
+.stat-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 1rem 1.1rem;
+    min-height: 92px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 4px;
+    background: currentColor;
+}
+
+.stat-card-primary { color: #0d6efd; }
+.stat-card-success { color: #198754; }
+.stat-card-warning { color: #f59e0b; }
+.stat-card-secondary { color: #6c757d; }
+
+.stat-label {
+    display: block;
+    font-size: 0.74rem;
+    color: #5c6d89;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.35rem;
+    font-weight: 700;
+}
+
+.stat-card strong {
+    font-size: 1.6rem;
+    color: var(--ink);
+    line-height: 1.2;
+}
+
+.item-name-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.item-title {
+    font-weight: 600;
+    color: var(--ink);
+}
+
+.acquisition-badge {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border-radius: 999px;
+    padding: 0.25rem 0.55rem;
+}
+
+.acquisition-purchased {
+    background: rgba(25, 135, 84, 0.12);
+    color: #198754;
+}
+
+.acquisition-donated {
+    background: rgba(245, 158, 11, 0.12);
+    color: #b7791f;
+}
+
+.acquisition-other {
+    background: rgba(108, 117, 125, 0.12);
+    color: #495057;
 }
 
 /* Shared surfaces */
@@ -347,6 +443,31 @@ form.filter-toolbar {
     margin-bottom: 0.35rem;
 }
 
+.form-section {
+    margin-bottom: 1.35rem;
+    padding: 1rem 1rem 0.35rem;
+    border: 1px solid #e5edf7;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #f9fbff 0%, #ffffff 100%);
+}
+
+.form-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.9rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid #e6edf4;
+}
+
+.form-section-header span {
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #244d75;
+}
+
 .paper-entry-actions {
     display: flex;
     align-items: center;
@@ -411,18 +532,58 @@ form.filter-toolbar {
     }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 991px) {
+    .app-sidebar,
     .sidebar {
+        width: 200px;
+    }
+
+    .content {
+        width: calc(100% - 200px) !important;
+        margin-left: 200px;
+    }
+
+    .inventory-overview {
+        grid-template-columns: repeat(2, minmax(150px, 1fr));
+    }
+}
+
+@media (max-width: 767px) {
+    .app-navbar {
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+    }
+
+    .app-navbar .navbar-brand,
+    .app-navbar .navbar-text,
+    .app-navbar .btn {
+        width: auto;
+    }
+
+    .app-navbar .navbar-text {
+        margin-left: 0 !important;
+        margin-right: 0.5rem !important;
+        font-size: 0.75rem;
+    }
+
+    .d-flex {
+        display: block !important;
+    }
+
+    .sidebar,
+    .app-sidebar {
         position: static;
-        width: 230px;
+        width: 100%;
         height: auto;
         max-height: none;
         overflow-y: visible;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     .content {
         width: 100% !important;
         margin-left: 0;
+        padding: 1rem !important;
     }
 
     .inventory-toolbar,
@@ -431,14 +592,68 @@ form.filter-toolbar {
         position: static;
     }
 
-    .inventory-table-card .table-responsive {
-        overflow-x: auto;
+    .inventory-overview {
+        grid-template-columns: 1fr 1fr;
     }
 
+    .inventory-table-card .table-responsive,
     .content .table-responsive {
         overflow-x: auto;
     }
+}
 
+@media (max-width: 480px) {
+    body {
+        font-size: 0.96rem;
+    }
+
+    .app-navbar {
+        gap: 0.5rem;
+    }
+
+    .app-navbar .navbar-brand {
+        font-size: 1.05rem;
+    }
+
+    .app-navbar .navbar-text {
+        display: block;
+        width: 100%;
+        margin-bottom: 0.25rem;
+        white-space: normal;
+    }
+
+    .app-navbar .btn {
+        width: 100%;
+    }
+
+    .inventory-overview {
+        grid-template-columns: 1fr;
+    }
+
+    .content {
+        padding: 0.75rem !important;
+    }
+
+    .paper-entry-grid {
+        grid-template-columns: 1fr;
+        gap: 0.85rem;
+    }
+
+    .paper-entry-field.span-1,
+    .paper-entry-field.span-2,
+    .paper-entry-field.span-3 {
+        grid-column: span 1;
+    }
+
+    .content .btn,
+    .paper-entry-actions .btn {
+        width: 100%;
+    }
+
+    .paper-entry-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
 }
 
 /* Print styles */

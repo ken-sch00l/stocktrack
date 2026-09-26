@@ -46,8 +46,8 @@ $logs = $logs->get_result();
     <div class="card-body">
         <div class="row g-3">
             <div class="col-md-4">
-                <small class="text-muted d-block">Property / Inventory No.</small>
-                <code><?php echo htmlspecialchars($item['property_ics_number'] ?: $item['tracking_number']); ?></code>
+                <small class="text-muted d-block">Property / ICS No.</small>
+                <code><?php echo htmlspecialchars($item['property_ics_number'] ?: $item['item_name']); ?></code>
             </div>
             <div class="col-md-4">
                 <small class="text-muted d-block">Serial Number</small>
@@ -65,6 +65,20 @@ $logs = $logs->get_result();
                 <small class="text-muted d-block">Date Acquired</small>
                 <?php echo $item['date_acquired'] ? date('F d, Y', strtotime($item['date_acquired'])) : 'N/A'; ?>
             </div>
+            <div class="col-md-4">
+                <small class="text-muted d-block">Acquisition Type</small>
+                <?php echo htmlspecialchars($item['acquisition_type'] ?? 'Purchased'); ?>
+            </div>
+            <?php if (($item['acquisition_type'] ?? 'Purchased') === 'Donated'): ?>
+            <div class="col-md-4">
+                <small class="text-muted d-block">Donor Name / Organization</small>
+                <?php echo htmlspecialchars($item['donor_name_organization'] ?? 'N/A'); ?>
+            </div>
+            <div class="col-md-4">
+                <small class="text-muted d-block">Donor Office / Department</small>
+                <?php echo htmlspecialchars($item['donor_office_department'] ?? 'N/A'); ?>
+            </div>
+            <?php endif; ?>
             <div class="col-md-4">
                 <small class="text-muted d-block">Unit Value</small>
                 <?php echo number_format((float)($item['unit_value'] ?? 0), 2); ?>

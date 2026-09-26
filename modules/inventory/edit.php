@@ -13,8 +13,27 @@ $item = $stmt->get_result()->fetch_assoc();
 if (!$item) { header("Location: /stocktrack/modules/inventory/index.php"); exit(); }
 
 $categories = $conn->query("SELECT * FROM categories ORDER BY category_name ASC");
+$donor_name_field = 'donor_name_organization';
+$donor_office_field = 'donor_office_department';
+$donor_name_check = $conn->query("SHOW COLUMNS FROM items LIKE 'donor_name_organization'");
+if ($donor_name_check && $donor_name_check->num_rows === 0) {
+    $legacy_donor_check = $conn->query("SHOW COLUMNS FROM items LIKE 'donor_name'");
+    if ($legacy_donor_check && $legacy_donor_check->num_rows > 0) {
+        $donor_name_field = 'donor_name';
+        $donor_office_field = 'donor_organization';
+    }
+}
 $error = '';
 $form = $item;
+if (empty($form['acquisition_type'])) {
+    $form['acquisition_type'] = 'Purchased';
+}
+if (empty($form['donor_name_organization'])) {
+    $form['donor_name_organization'] = '';
+}
+if (empty($form['donor_office_department'])) {
+    $form['donor_office_department'] = '';
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf_token();
@@ -35,19 +54,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $date_purchased           = $date_acquired;
     $shortage_overage_qty     = (int)($_POST['shortage_overage_qty'] ?? 0);
     $shortage_overage_value   = max(0, (float)str_replace(',', '', (string)($_POST['shortage_overage_value'] ?? 0)));
-    $property_ics_number      = trim((string)($_POST['property_ics_number'] ?? $item['property_ics_number'] ?? $item['tracking_number']));
+    $property_ics_number      = trim((string)($_POST['property_ics_number'] ?? $item['property_ics_number'] ?? ''));
+    $acquisition_type         = $_POST['acquisition_type'] ?? 'Purchased';
+    $donor_name_organization  = trim((string)($_POST['donor_name_organization'] ?? ''));
+    $donor_office_department  = trim((string)($_POST['donor_office_department'] ?? ''));
     $person_charge            = trim((string)($_POST['person_in_charge'] ?? ''));
     $position                 = trim((string)($_POST['position'] ?? ''));
     $last_inventory           = ($_POST['last_inventory_date'] ?? '') ?: null;
     $remarks                  = trim((string)($_POST['remarks'] ?? ''));
+
+    if (!in_array($acquisition_type, ['Purchased', 'Donated', 'Other'], true)) {
+        $acquisition_type = 'Purchased';
+    }
+    if ($acquisition_type !== 'Donated') {
+        $donor_name_organization = null;
+        $donor_office_department = null;
+    } else {
+        $donor_name_organization = $donor_name_organization !== '' ? $donor_name_organization : null;
+        $donor_office_department = $donor_office_department !== '' ? $donor_office_department : null;
+    }
 
     $usage_stmt = $conn->prepare("SELECT COALESCE(SUM(CASE WHEN action = 'Borrowed' THEN quantity WHEN action = 'Used' THEN quantity WHEN action = 'Returned' THEN -quantity ELSE 0 END), 0) AS allocated_quantity FROM logbook WHERE item_id = ?");
     $usage_stmt->bind_param("i", $id);
     $usage_stmt->execute();
     $allocated_quantity = (int)$usage_stmt->get_result()->fetch_assoc()['allocated_quantity'];
 
-    if (!$item_name || !$date_acquired || !$unit_measure) {
-        $error = 'Description, date acquired, and unit of measure are required.';
+    if (!$item_name || !$date_acquired || !$unit_measure || !in_array($acquisition_type, ['Purchased', 'Donated', 'Other'], true)) {
+        $error = 'Description, date acquired, unit of measure, and a valid acquisition type are required.';
     } elseif ($quantity < $allocated_quantity) {
         $error = "On-hand quantity cannot be lower than the {$allocated_quantity} item(s) currently allocated or borrowed.";
     }
@@ -57,9 +90,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->bind_param("sssisissssdiiidssssi", $property_ics_number, $serial_number, $item_name, $category_id, $condition, $quantity, $unit, $date_purchased, $date_acquired, $unit_measure, $unit_value, $balance_per_card, $on_hand_per_count, $shortage_overage_qty, $shortage_overage_value, $person_charge, $position, $last_inventory, $remarks, $id);
 
         if ($stmt->execute()) {
-            recordAudit('item_updated', 'item', $id, $item_name);
-            header("Location: /stocktrack/modules/inventory/index.php?success=Item updated successfully.");
-            exit();
+            $metadata_sql = "UPDATE items SET acquisition_type = ?, {$donor_name_field} = ?, {$donor_office_field} = ? WHERE item_id = ?";
+            $metadata_stmt = $conn->prepare($metadata_sql);
+            $metadata_stmt->bind_param("sssi", $acquisition_type, $donor_name_organization, $donor_office_department, $id);
+
+            if (!$metadata_stmt->execute()) {
+                $error = "Failed to update acquisition details. Please try again.";
+            } else {
+                recordAudit('item_updated', 'item', $id, $item_name . ' | Acquisition: ' . $acquisition_type);
+                header("Location: /stocktrack/modules/inventory/index.php?success=Item updated successfully.");
+                exit();
+            }
         } else {
             $error = "Failed to update item. Please try again.";
         }
@@ -86,9 +127,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php csrf_field(); ?>
             <div class="paper-entry-grid">
                 <div class="paper-entry-field span-3">
-                    <label class="paper-entry-label">Property / Inventory No.</label>
-                    <input type="text" name="property_ics_number" class="paper-entry-input" value="<?php echo htmlspecialchars($form['property_ics_number'] ?: $form['tracking_number']); ?>" placeholder="e.g. 1-07-05-030">
-                    <div class="form-text">Enter the official property number, not the item name.</div>
+                    <label class="paper-entry-label">Property / ICS No.</label>
+                    <input type="text" name="property_ics_number" class="paper-entry-input" value="<?php echo htmlspecialchars($form['property_ics_number'] ?? ''); ?>" placeholder="e.g. 1-07-05-030">
+                    <div class="form-text">If blank, the item name will be used as the reference.</div>
                 </div>
                 <div class="paper-entry-field span-3">
                     <label class="paper-entry-label">Description</label>
@@ -96,8 +137,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="form-text">Leave blank if the description is not available yet.</div>
                 </div>
                 <div class="paper-entry-field span-2">
+                    <label class="paper-entry-label">Acquisition Type</label>
+                    <select name="acquisition_type" id="acquisition_type" class="paper-entry-input" required>
+                        <option value="Purchased" <?php echo ($form['acquisition_type'] ?? 'Purchased') === 'Purchased' ? 'selected' : ''; ?>>Purchased</option>
+                        <option value="Donated" <?php echo ($form['acquisition_type'] ?? 'Purchased') === 'Donated' ? 'selected' : ''; ?>>Donated</option>
+                        <option value="Other" <?php echo ($form['acquisition_type'] ?? 'Purchased') === 'Other' ? 'selected' : ''; ?>>Other</option>
+                    </select>
+                </div>
+                <div class="paper-entry-field span-2">
                     <label class="paper-entry-label">Date Acquired</label>
                     <input type="date" name="date_acquired" class="paper-entry-input" value="<?php echo htmlspecialchars($form['date_acquired'] ?: $form['date_purchased']); ?>" required>
+                </div>
+                <div class="paper-entry-field span-3 donor-field" id="donor_fields" style="display: none;">
+                    <label class="paper-entry-label">Donor Name / Organization</label>
+                    <input type="text" name="donor_name_organization" class="paper-entry-input" value="<?php echo htmlspecialchars($form['donor_name_organization'] ?? ''); ?>" placeholder="Individual, agency, LGU, NGO, or organization">
+                </div>
+                <div class="paper-entry-field span-3 donor-field" id="donor_organization_field" style="display: none;">
+                    <label class="paper-entry-label">Donor Office / Department</label>
+                    <input type="text" name="donor_office_department" class="paper-entry-input" value="<?php echo htmlspecialchars($form['donor_office_department'] ?? ''); ?>" placeholder="Optional office, division, or department">
                 </div>
                 <div class="paper-entry-field span-1">
                     <label class="paper-entry-label">Unit of Measure</label>
@@ -182,6 +239,24 @@ document.querySelectorAll('.money-input').forEach((input) => {
         input.value = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (parts.length > 1 ? '.' + parts[1].slice(0, 2) : '');
     });
 });
+
+const acquisitionTypeField = document.getElementById('acquisition_type');
+const donorFields = document.querySelectorAll('.donor-field');
+const toggleDonorFields = () => {
+    const show = acquisitionTypeField && acquisitionTypeField.value === 'Donated';
+    donorFields.forEach((field) => {
+        field.style.display = show ? '' : 'none';
+        const input = field.querySelector('input');
+        if (input && !show) {
+            input.value = '';
+        }
+    });
+};
+
+if (acquisitionTypeField) {
+    acquisitionTypeField.addEventListener('change', toggleDonorFields);
+    toggleDonorFields();
+}
 </script>
 
 <?php require_once '../../includes/footer.php'; ?>

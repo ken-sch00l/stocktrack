@@ -1,4 +1,7 @@
 <?php
+header('Location: index.php');
+exit();
+
 require_once '../../includes/auth.php';
 requireLogin();
 requirePermission('edit');
@@ -31,8 +34,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 if ($search !== '') {
     $search_value = '%' . $search . '%';
-    $stmt = $conn->prepare("SELECT item_id, tracking_number, item_name, condition_status, on_hand_per_count, unit_measure FROM items WHERE tracking_number LIKE ? OR item_name LIKE ? ORDER BY item_name ASC LIMIT 50");
-    $stmt->bind_param("ss", $search_value, $search_value);
+    $stmt = $conn->prepare("SELECT item_id, tracking_number, property_ics_number, item_name, condition_status, on_hand_per_count, unit_measure FROM items WHERE property_ics_number LIKE ? OR item_name LIKE ? OR tracking_number LIKE ? ORDER BY item_name ASC LIMIT 50");
+    $stmt->bind_param("sss", $search_value, $search_value, $search_value);
     $stmt->execute();
     $items = $stmt->get_result();
     if ($items->num_rows === 1) {
@@ -59,7 +62,7 @@ if ($item && $_SERVER['REQUEST_METHOD'] === 'POST' && !$error) {
 <div class="card border-0 shadow-sm mb-3">
     <div class="card-body">
         <form method="GET" class="row g-2">
-            <div class="col-md-10"><label class="form-label fw-semibold" for="countSearch">Search tracking number or item name</label><input id="countSearch" type="search" name="search" class="form-control" value="<?php echo htmlspecialchars($search); ?>" placeholder="e.g. TRK00001 or Printer" required></div>
+            <div class="col-md-10"><label class="form-label fw-semibold" for="countSearch">Search property / ICS no. or item name</label><input id="countSearch" type="search" name="search" class="form-control" value="<?php echo htmlspecialchars($search); ?>" placeholder="e.g. 1-07-05-030 or Printer" required></div>
             <div class="col-md-2 d-flex align-items-end"><button type="submit" class="btn btn-primary w-100"><i class="bi bi-search me-1"></i>Find item</button></div>
         </form>
     </div>
@@ -70,8 +73,8 @@ if ($item && $_SERVER['REQUEST_METHOD'] === 'POST' && !$error) {
     <div class="card-header bg-white fw-semibold">Select an item</div>
     <div class="list-group list-group-flush">
         <?php while ($result_item = $items->fetch_assoc()): ?>
-            <a href="?search=<?php echo urlencode($result_item['tracking_number']); ?>" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                <span><strong><?php echo htmlspecialchars($result_item['item_name']); ?></strong><small class="d-block text-muted"><?php echo htmlspecialchars($result_item['tracking_number']); ?></small></span>
+            <a href="?search=<?php echo urlencode($result_item['property_ics_number'] ?: $result_item['item_name']); ?>" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                <span><strong><?php echo htmlspecialchars($result_item['item_name']); ?></strong><small class="d-block text-muted"><?php echo htmlspecialchars($result_item['property_ics_number'] ?: $result_item['item_name']); ?></small></span>
                 <span class="badge <?php echo $result_item['condition_status'] === 'Serviceable' ? 'badge-serviceable' : 'badge-unserviceable'; ?>"><?php echo htmlspecialchars($result_item['condition_status']); ?></span>
             </a>
         <?php endwhile; ?>
@@ -84,7 +87,7 @@ if ($item && $_SERVER['REQUEST_METHOD'] === 'POST' && !$error) {
 <?php if ($item): ?>
 <div class="card border-0 shadow-sm count-item-card">
     <div class="card-body">
-        <div class="mb-3"><small class="text-muted">Tracking number</small><div class="fw-semibold"><?php echo htmlspecialchars($item['tracking_number']); ?></div><h5 class="fw-bold mt-2 mb-0"><?php echo htmlspecialchars($item['item_name']); ?></h5><small class="text-muted"><?php echo htmlspecialchars($item['unit_measure'] ?? ''); ?></small></div>
+        <div class="mb-3"><small class="text-muted">Property / ICS No.</small><div class="fw-semibold"><?php echo htmlspecialchars($item['property_ics_number'] ?: $item['item_name']); ?></div><h5 class="fw-bold mt-2 mb-0"><?php echo htmlspecialchars($item['item_name']); ?></h5><small class="text-muted"><?php echo htmlspecialchars($item['unit_measure'] ?? ''); ?></small></div>
         <form method="POST">
             <?php csrf_field(); ?>
             <input type="hidden" name="item_id" value="<?php echo (int)$item['item_id']; ?>">

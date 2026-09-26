@@ -120,7 +120,7 @@ $recent = $conn->query("SELECT i.*, c.category_name FROM items i LEFT JOIN categ
         <table class="table table-hover mb-0">
             <thead>
                 <tr>
-                    <th>Tracking No.</th>
+                    <th>Property / ICS No.</th>
                     <th>Item Name</th>
                     <th>Category</th>
                     <th>Condition</th>
@@ -131,7 +131,7 @@ $recent = $conn->query("SELECT i.*, c.category_name FROM items i LEFT JOIN categ
                 <?php if ($recent->num_rows > 0): ?>
                     <?php while($row = $recent->fetch_assoc()): ?>
                     <tr>
-                        <td><code><?php echo htmlspecialchars($row['tracking_number']); ?></code></td>
+                        <td><code><?php echo htmlspecialchars($row['property_ics_number'] ?: $row['item_name']); ?></code></td>
                         <td><?php echo htmlspecialchars($row['item_name']); ?></td>
                         <td><?php echo htmlspecialchars($row['category_name'] ?? 'N/A'); ?></td>
                         <td>

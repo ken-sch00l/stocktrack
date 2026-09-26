@@ -8,6 +8,7 @@ require_once '../../includes/db.php';
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $category_filter = isset($_GET['category']) ? (int)$_GET['category'] : 0;
 $condition_filter = isset($_GET['condition']) ? $_GET['condition'] : '';
+$acquisition_filter = isset($_GET['acquisition']) ? $_GET['acquisition'] : '';
 $sort_by = $_GET['sort'] ?? 'item_name';
 $sort_direction = strtoupper($_GET['direction'] ?? 'ASC');
 $sort_columns = [
@@ -42,6 +43,13 @@ if ($condition_filter) {
     $params[] = $condition_filter;
     $types .= 's';
 }
+if ($acquisition_filter && in_array($acquisition_filter, ['Purchased', 'Donated', 'Other'], true)) {
+    $where .= " AND i.acquisition_type = ?";
+    $params[] = $acquisition_filter;
+    $types .= 's';
+} else {
+    $acquisition_filter = '';
+}
 
 $per_page = 20;
 $page = max(1, (int)($_GET['page'] ?? 1));
@@ -72,6 +80,16 @@ $stmt->execute();
 $items = $stmt->get_result();
 
 $categories = $conn->query("SELECT * FROM categories ORDER BY category_name ASC");
+$summary_stmt = $conn->prepare("SELECT acquisition_type, COUNT(*) AS total FROM items GROUP BY acquisition_type");
+$summary_stmt->execute();
+$summary_result = $summary_stmt->get_result();
+$summary_counts = ['Purchased' => 0, 'Donated' => 0, 'Other' => 0];
+while ($row = $summary_result->fetch_assoc()) {
+    if (isset($summary_counts[$row['acquisition_type']])) {
+        $summary_counts[$row['acquisition_type']] = (int)$row['total'];
+    }
+}
+$total_inventory_items = (int)$conn->query("SELECT COUNT(*) AS total FROM items")->fetch_assoc()['total'];
 ?>
 <?php require_once '../../includes/header.php'; ?>
 <?php require_once '../../includes/sidebar.php'; ?>
@@ -83,6 +101,25 @@ $categories = $conn->query("SELECT * FROM categories ORDER BY category_name ASC"
             <i class="bi bi-plus-circle me-1"></i>Add Item
         </a>
     <?php endif; ?>
+</div>
+
+<div class="inventory-overview mb-4">
+    <div class="stat-card stat-card-primary">
+        <span class="stat-label">Total Items</span>
+        <strong><?php echo number_format($total_inventory_items); ?></strong>
+    </div>
+    <div class="stat-card stat-card-success">
+        <span class="stat-label">Purchased</span>
+        <strong><?php echo number_format($summary_counts['Purchased']); ?></strong>
+    </div>
+    <div class="stat-card stat-card-warning">
+        <span class="stat-label">Donated</span>
+        <strong><?php echo number_format($summary_counts['Donated']); ?></strong>
+    </div>
+    <div class="stat-card stat-card-secondary">
+        <span class="stat-label">Other</span>
+        <strong><?php echo number_format($summary_counts['Other']); ?></strong>
+    </div>
 </div>
 
 <?php if (isset($_GET['success'])): ?>
@@ -102,7 +139,7 @@ $categories = $conn->query("SELECT * FROM categories ORDER BY category_name ASC"
     <div class="card-body">
         <form method="GET" class="row g-2">
             <div class="col-md-5">
-                <input type="text" name="search" class="form-control" placeholder="Search by name, property no., tracking no., serial no..." value="<?php echo htmlspecialchars($search); ?>">
+                <input type="text" name="search" class="form-control" placeholder="Search by name, property no., serial no..." value="<?php echo htmlspecialchars($search); ?>">
             </div>
             <div class="col-md-3">
                 <select name="category" class="form-select">
@@ -122,6 +159,14 @@ $categories = $conn->query("SELECT * FROM categories ORDER BY category_name ASC"
                 </select>
             </div>
             <div class="col-md-2">
+                <select name="acquisition" class="form-select">
+                    <option value="">All Sources</option>
+                    <option value="Purchased" <?php echo $acquisition_filter === 'Purchased' ? 'selected' : ''; ?>>Purchased</option>
+                    <option value="Donated" <?php echo $acquisition_filter === 'Donated' ? 'selected' : ''; ?>>Donated</option>
+                    <option value="Other" <?php echo $acquisition_filter === 'Other' ? 'selected' : ''; ?>>Other</option>
+                </select>
+            </div>
+            <div class="col-md-2">
                 <select name="sort" class="form-select" aria-label="Sort inventory">
                     <option value="item_name" <?php echo $sort_by === 'item_name' ? 'selected' : ''; ?>>Name</option>
                     <option value="category" <?php echo $sort_by === 'category' ? 'selected' : ''; ?>>Category</option>
@@ -129,7 +174,7 @@ $categories = $conn->query("SELECT * FROM categories ORDER BY category_name ASC"
                     <option value="quantity" <?php echo $sort_by === 'quantity' ? 'selected' : ''; ?>>Quantity</option>
                     <option value="date_purchased" <?php echo $sort_by === 'date_purchased' ? 'selected' : ''; ?>>Purchase date</option>
                     <option value="date_added" <?php echo $sort_by === 'date_added' ? 'selected' : ''; ?>>Date added</option>
-                    <option value="tracking" <?php echo $sort_by === 'tracking' ? 'selected' : ''; ?>>Tracking number</option>
+                    <option value="tracking" <?php echo $sort_by === 'tracking' ? 'selected' : ''; ?>>Property / ICS No.</option>
                 </select>
             </div>
             <div class="col-md-2">
@@ -155,7 +200,6 @@ $categories = $conn->query("SELECT * FROM categories ORDER BY category_name ASC"
                 <tr>
                     <th rowspan="2">Article</th>
                     <th rowspan="2">Description</th>
-                    <th rowspan="2">Tracking No.</th>
                     <th rowspan="2">Property / ICS No.</th>
                     <th rowspan="2">Date Acquired</th>
                     <th rowspan="2">Unit</th>
@@ -178,9 +222,14 @@ $categories = $conn->query("SELECT * FROM categories ORDER BY category_name ASC"
                     <?php while($row = $items->fetch_assoc()): ?>
                     <tr>
                         <td><small><?php echo htmlspecialchars($row['category_name'] ?? 'N/A'); ?></small></td>
-                        <td><?php echo htmlspecialchars($row['item_name']); ?></td>
-                        <td><code><?php echo htmlspecialchars($row['tracking_number']); ?></code></td>
-                        <td><code><?php echo htmlspecialchars($row['property_ics_number'] ?? ''); ?></code></td>
+                        <td>
+                            <div class="item-name-stack">
+                                <span class="item-title"><?php echo htmlspecialchars($row['item_name']); ?></span>
+                                <?php $acq_type = $row['acquisition_type'] ?? 'Purchased'; ?>
+                                <span class="acquisition-badge acquisition-<?php echo strtolower($acq_type); ?>"><?php echo htmlspecialchars($acq_type); ?></span>
+                            </div>
+                        </td>
+                        <td><code><?php echo htmlspecialchars($row['property_ics_number'] ?: $row['item_name']); ?></code></td>
                         <td><?php echo $row['date_acquired'] ? date('M d, Y', strtotime($row['date_acquired'])) : 'N/A'; ?></td>
                         <td><?php echo htmlspecialchars($row['unit_measure'] ?: ($row['unit'] ?? '')); ?></td>
                         <td><?php echo number_format((float)($row['unit_value'] ?? 0), 2); ?></td>
@@ -211,7 +260,7 @@ $categories = $conn->query("SELECT * FROM categories ORDER BY category_name ASC"
                     </tr>
                     <?php endwhile; ?>
                 <?php else: ?>
-                    <tr><td colspan="14" class="text-center text-muted py-4">No items found.</td></tr>
+                    <tr><td colspan="15" class="text-center text-muted py-4">No items found.</td></tr>
                 <?php endif; ?>
             </tbody>
         </table>

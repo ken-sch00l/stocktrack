@@ -153,7 +153,7 @@ $unserv = $unserviceable_stmt->get_result()->fetch_assoc()['cnt'];
         <table class="table table-hover mb-0">
             <thead>
                 <tr>
-                    <th>Tracking No.</th>
+                    <th>Property / ICS No.</th>
                     <th>Item Name</th>
                     <th>Category</th>
                     <th>Condition</th>
@@ -167,7 +167,7 @@ $unserv = $unserviceable_stmt->get_result()->fetch_assoc()['cnt'];
                 <?php if ($items->num_rows > 0): ?>
                     <?php while($row = $items->fetch_assoc()): ?>
                     <tr>
-                        <td><code><?php echo htmlspecialchars($row['tracking_number']); ?></code></td>
+                        <td><code><?php echo htmlspecialchars($row['property_ics_number'] ?: $row['item_name']); ?></code></td>
                         <td><?php echo htmlspecialchars($row['item_name']); ?></td>
                         <td><small><?php echo htmlspecialchars($row['category_name'] ?? 'N/A'); ?></small></td>
                         <td>
