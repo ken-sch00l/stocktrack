@@ -13,7 +13,7 @@ $form_purpose = '';
 $form_date_action = '';
 $form_date_returned = '';
 $form_return_for_log_id = '';
-$items = $conn->query("SELECT i.item_id, i.item_name, i.tracking_number, i.quantity AS total_quantity, COALESCE(SUM(CASE WHEN l.action = 'Borrowed' THEN l.quantity WHEN l.action = 'Used' THEN l.quantity WHEN l.action = 'Returned' THEN -l.quantity ELSE 0 END), 0) AS allocated_quantity, COALESCE(SUM(CASE WHEN l.action = 'Borrowed' THEN l.quantity WHEN l.action = 'Returned' THEN -l.quantity ELSE 0 END), 0) AS borrowed_quantity FROM items i LEFT JOIN logbook l ON l.item_id = i.item_id GROUP BY i.item_id ORDER BY i.item_name ASC");
+$items = $conn->query("SELECT i.item_id, i.item_name, i.tracking_number, i.quantity AS total_quantity, i.is_consumable, COALESCE(SUM(CASE WHEN l.action = 'Borrowed' THEN l.quantity WHEN l.action = 'Returned' THEN -l.quantity ELSE 0 END), 0) AS outstanding_borrowed_quantity, COALESCE(SUM(CASE WHEN l.action = 'Borrowed' THEN l.quantity WHEN l.action = 'Returned' THEN -l.quantity ELSE 0 END), 0) AS borrowed_quantity FROM items i LEFT JOIN logbook l ON l.item_id = i.item_id GROUP BY i.item_id ORDER BY i.item_name ASC");
 $borrowings = $conn->query("SELECT b.log_id, b.item_id, b.borrowed_by, b.quantity, b.date_action, i.item_name, b.quantity - COALESCE(SUM(r.quantity), 0) AS remaining_quantity FROM logbook b JOIN items i ON i.item_id = b.item_id LEFT JOIN logbook r ON r.return_for_log_id = b.log_id AND r.action = 'Returned' WHERE b.action = 'Borrowed' GROUP BY b.log_id, b.item_id, b.borrowed_by, b.quantity, b.date_action, i.item_name HAVING remaining_quantity > 0 ORDER BY b.date_action ASC, i.item_name ASC");
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $conn->begin_transaction();
 
-        $item_stmt = $conn->prepare("SELECT item_name, quantity FROM items WHERE item_id = ? FOR UPDATE");
+        $item_stmt = $conn->prepare("SELECT item_name, quantity, is_consumable FROM items WHERE item_id = ? FOR UPDATE");
         $item_stmt->bind_param("i", $item_id);
         $item_stmt->execute();
         $item = $item_stmt->get_result()->fetch_assoc();
@@ -61,12 +61,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$item) {
             $conn->rollback();
             $error = "Selected item was not found.";
+        } elseif ((int)$item['is_consumable'] === 1 && $action !== 'Used') {
+            $conn->rollback();
+            $error = "Single-use items must be recorded with the Use Item action.";
         } else {
-            $usage_stmt = $conn->prepare("SELECT COALESCE(SUM(CASE WHEN action = 'Borrowed' THEN quantity WHEN action = 'Used' THEN quantity WHEN action = 'Returned' THEN -quantity ELSE 0 END), 0) AS allocated_quantity, COALESCE(SUM(CASE WHEN action = 'Borrowed' THEN quantity WHEN action = 'Returned' THEN -quantity ELSE 0 END), 0) AS borrowed_quantity FROM logbook WHERE item_id = ?");
+            $usage_stmt = $conn->prepare("SELECT COALESCE(SUM(CASE WHEN action = 'Borrowed' THEN quantity WHEN action = 'Returned' THEN -quantity ELSE 0 END), 0) AS outstanding_borrowed_quantity, COALESCE(SUM(CASE WHEN action = 'Borrowed' THEN quantity WHEN action = 'Returned' THEN -quantity ELSE 0 END), 0) AS borrowed_quantity FROM logbook WHERE item_id = ?");
             $usage_stmt->bind_param("i", $item_id);
             $usage_stmt->execute();
             $usage = $usage_stmt->get_result()->fetch_assoc();
-            $available_quantity = (int)$item['quantity'] - (int)$usage['allocated_quantity'];
+            $available_quantity = (int)$item['quantity'] - (int)$usage['outstanding_borrowed_quantity'];
 
             $returning_borrow = null;
             if ($action === 'Returned') {
@@ -98,6 +101,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if ($stmt->execute()) {
                     $logbook_id = $conn->insert_id;
+
+                    if ($action === 'Used') {
+                        $consume_stmt = $conn->prepare("UPDATE items SET quantity = GREATEST(0, quantity - ?) WHERE item_id = ?");
+                        $consume_stmt->bind_param("ii", $quantity, $item_id);
+                        $consume_stmt->execute();
+                    }
+
                     if ($action === 'Returned' && $quantity === (int)$returning_borrow['remaining_quantity']) {
                         $close_borrow_stmt = $conn->prepare("UPDATE logbook SET date_returned = ? WHERE log_id = ?");
                         $close_borrow_stmt->bind_param("si", $date_action, $return_for_log_id);
@@ -151,7 +161,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <select name="item_id" class="form-select" required>
                         <option value="">Select Item</option>
                         <?php while($item = $items->fetch_assoc()): ?>
-                            <option value="<?php echo $item['item_id']; ?>" data-total="<?php echo (int)$item['total_quantity']; ?>" data-available="<?php echo max(0, (int)$item['total_quantity'] - (int)$item['allocated_quantity']); ?>" data-borrowed="<?php echo max(0, (int)$item['borrowed_quantity']); ?>" <?php echo (string)$form_item_id === (string)$item['item_id'] ? 'selected' : ''; ?>>
+                            <option value="<?php echo $item['item_id']; ?>" data-total="<?php echo (int)$item['total_quantity']; ?>" data-available="<?php echo max(0, (int)$item['total_quantity'] - (int)$item['outstanding_borrowed_quantity']); ?>" data-borrowed="<?php echo max(0, (int)$item['borrowed_quantity']); ?>" data-consumable="<?php echo (int)$item['is_consumable']; ?>" <?php echo (string)$form_item_id === (string)$item['item_id'] ? 'selected' : ''; ?>>
                                 <?php echo htmlspecialchars($item['item_name'] . ' (' . $item['tracking_number'] . ')'); ?>
                             </option>
                         <?php endwhile; ?>
@@ -165,13 +175,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="col-md-3">
                     <label class="form-label">Action <span class="text-danger">*</span></label>
                     <select name="action" class="form-select" required>
-                        <option value="Borrowed" <?php echo $form_action === 'Borrowed' ? 'selected' : ''; ?>>Borrowed</option>
-                        <option value="Used" <?php echo $form_action === 'Used' ? 'selected' : ''; ?>>Used</option>
-                        <option value="Returned" <?php echo $form_action === 'Returned' ? 'selected' : ''; ?>>Returned</option>
+                        <option value="Borrowed" <?php echo $form_action === 'Borrowed' ? 'selected' : ''; ?>>Borrow Item</option>
+                        <option value="Used" <?php echo $form_action === 'Used' ? 'selected' : ''; ?>>Use Item</option>
+                        <option value="Returned" <?php echo $form_action === 'Returned' ? 'selected' : ''; ?>>Return Item</option>
                     </select>
+                    <small class="text-muted">Borrowed items are reserved; used items permanently reduce inventory stock.</small>
                 </div>
                 <div class="col-md-6" id="returnTransactionField">
-                    <label class="form-label">Borrowing to return <span class="text-danger">*</span></label>
+                    <label class="form-label">Select borrowed item to return <span class="text-danger">*</span></label>
                     <select name="return_for_log_id" class="form-select">
                         <option value="">Select borrowing transaction</option>
                         <?php while ($borrowing = $borrowings->fetch_assoc()): ?>
@@ -187,19 +198,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <input type="number" name="quantity" class="form-control" value="<?php echo htmlspecialchars((string)$form_quantity, ENT_QUOTES, 'UTF-8'); ?>" min="1" required>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Borrowed/Used By <span class="text-danger">*</span></label>
+                    <label class="form-label">Person / Borrower <span class="text-danger">*</span></label>
                     <input type="text" name="borrowed_by" class="form-control" placeholder="Full name" value="<?php echo htmlspecialchars($form_borrowed_by, ENT_QUOTES, 'UTF-8'); ?>" required>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Purpose</label>
-                    <input type="text" name="purpose" class="form-control" placeholder="Reason for borrowing/use" value="<?php echo htmlspecialchars($form_purpose, ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="text" name="purpose" class="form-control" placeholder="Reason for borrowing or use" value="<?php echo htmlspecialchars($form_purpose, ENT_QUOTES, 'UTF-8'); ?>">
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Date <span class="text-danger">*</span></label>
+                    <label class="form-label">Transaction date <span class="text-danger">*</span></label>
                     <input type="date" name="date_action" class="form-control" value="<?php echo htmlspecialchars($form_date_action, ENT_QUOTES, 'UTF-8'); ?>" required>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Date Returned <span id="dateReturnedRequired" class="text-danger">*</span><small class="text-muted"> (required for returns)</small></label>
+                    <label class="form-label">Return date <span id="dateReturnedRequired" class="text-danger">*</span><small class="text-muted"> (required for return)</small></label>
                     <input type="date" name="date_returned" class="form-control" value="<?php echo htmlspecialchars($form_date_returned, ENT_QUOTES, 'UTF-8'); ?>">
                 </div>
                 <div class="col-12">
@@ -238,7 +249,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         const action = actionSelect.value;
         const amount = action === 'Returned' ? borrowed : available;
         stockTracker.className = amount > 0 ? 'alert alert-success mb-0' : 'alert alert-warning mb-0';
-        stockTracker.innerHTML = '<strong>' + (action === 'Returned' ? 'Can return now: ' + borrowed : 'Available now: ' + available) + '</strong>' +
+        stockTracker.innerHTML = '<strong>' + (action === 'Returned' ? 'Return quantity available: ' + borrowed : 'Available now: ' + available) + '</strong>' +
             ' &middot; Total stock: ' + total + ' &middot; Currently out: ' + borrowed +
             '<br><small>' + (action === 'Returned' ? 'Enter the quantity being returned.' : 'You cannot record more than this available quantity.') + '</small>';
     }
@@ -268,18 +279,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         });
     });
 
-    itemSelect.addEventListener('change', refreshStockTracker);
-    actionSelect.addEventListener('change', function() {
+    function updateActionFields() {
+        const selectedItem = itemSelect.options[itemSelect.selectedIndex];
+        const isConsumable = selectedItem && selectedItem.dataset.consumable === '1';
+        const borrowOption = actionSelect.querySelector('option[value="Borrowed"]');
+        const returnOption = actionSelect.querySelector('option[value="Returned"]');
+        borrowOption.disabled = isConsumable;
+        returnOption.disabled = isConsumable;
+        if (isConsumable && actionSelect.value !== 'Used') {
+            actionSelect.value = 'Used';
+        }
         returnTransactionField.style.display = actionSelect.value === 'Returned' ? 'block' : 'none';
         returnTransactionSelect.required = actionSelect.value === 'Returned';
         dateReturnedInput.required = actionSelect.value === 'Returned';
         dateReturnedRequired.style.display = actionSelect.value === 'Returned' ? 'inline' : 'none';
         if (latestStock) renderStockTracker(latestStock);
+    }
+
+    itemSelect.addEventListener('change', function() {
+        updateActionFields();
+        refreshStockTracker();
     });
-    returnTransactionField.style.display = actionSelect.value === 'Returned' ? 'block' : 'none';
-    returnTransactionSelect.required = actionSelect.value === 'Returned';
-    dateReturnedInput.required = actionSelect.value === 'Returned';
-    dateReturnedRequired.style.display = actionSelect.value === 'Returned' ? 'inline' : 'none';
+    actionSelect.addEventListener('change', updateActionFields);
+    updateActionFields();
     refreshStockTracker();
     setInterval(refreshStockTracker, 10000);
 </script>

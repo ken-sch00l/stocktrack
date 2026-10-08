@@ -62,6 +62,10 @@ $logs = $logs->get_result();
                 <?php echo htmlspecialchars($item['unit_measure'] ?: ($item['unit'] ?? 'N/A')); ?>
             </div>
             <div class="col-md-4">
+                <small class="text-muted d-block">Usage</small>
+                <?php echo !empty($item['is_consumable']) ? 'Single-use / consumable' : 'Reusable'; ?>
+            </div>
+            <div class="col-md-4">
                 <small class="text-muted d-block">Date Acquired</small>
                 <?php echo $item['date_acquired'] ? date('F d, Y', strtotime($item['date_acquired'])) : 'N/A'; ?>
             </div>

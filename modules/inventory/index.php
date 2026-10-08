@@ -70,7 +70,7 @@ $pagination_url = function ($target_page) use ($query_params) {
     return '?' . htmlspecialchars(http_build_query(array_merge($query_params, ['page' => $target_page])), ENT_QUOTES, 'UTF-8');
 };
 
-$sql = "SELECT i.*, c.category_name, COALESCE((SELECT SUM(CASE WHEN l.action IN ('Borrowed', 'Used') THEN l.quantity WHEN l.action = 'Returned' THEN -l.quantity ELSE 0 END) FROM logbook l WHERE l.item_id = i.item_id), 0) AS allocated_quantity FROM items i LEFT JOIN categories c ON i.category_id = c.category_id $where ORDER BY {$sort_columns[$sort_by]} $sort_direction, i.item_id ASC LIMIT ? OFFSET ?";
+$sql = "SELECT i.*, c.category_name, COALESCE((SELECT SUM(CASE WHEN l.action = 'Borrowed' THEN l.quantity WHEN l.action = 'Returned' THEN -l.quantity ELSE 0 END) FROM logbook l WHERE l.item_id = i.item_id), 0) AS outstanding_borrowed_quantity FROM items i LEFT JOIN categories c ON i.category_id = c.category_id $where ORDER BY {$sort_columns[$sort_by]} $sort_direction, i.item_id ASC LIMIT ? OFFSET ?";
 $stmt = $conn->prepare($sql);
 $limit_params = $params;
 $limit_params[] = $per_page;
@@ -227,6 +227,9 @@ $total_inventory_items = (int)$conn->query("SELECT COUNT(*) AS total FROM items"
                                 <span class="item-title"><?php echo htmlspecialchars($row['item_name']); ?></span>
                                 <?php $acq_type = $row['acquisition_type'] ?? 'Purchased'; ?>
                                 <span class="acquisition-badge acquisition-<?php echo strtolower($acq_type); ?>"><?php echo htmlspecialchars($acq_type); ?></span>
+                                <?php if (!empty($row['is_consumable'])): ?>
+                                    <span class="badge bg-info text-dark">Single-use</span>
+                                <?php endif; ?>
                             </div>
                         </td>
                         <td><code><?php echo htmlspecialchars($row['property_ics_number'] ?: $row['item_name']); ?></code></td>
@@ -235,7 +238,7 @@ $total_inventory_items = (int)$conn->query("SELECT COUNT(*) AS total FROM items"
                         <td><?php echo number_format((float)($row['unit_value'] ?? 0), 2); ?></td>
                         <td><?php echo (int)($row['balance_per_card'] ?? $row['quantity']); ?></td>
                         <td><?php echo (int)($row['on_hand_per_count'] ?? $row['quantity']); ?></td>
-                        <td><strong><?php echo max(0, (int)$row['quantity'] - (int)$row['allocated_quantity']); ?></strong></td>
+                        <td><strong><?php echo max(0, (int)$row['quantity'] - (int)$row['outstanding_borrowed_quantity']); ?></strong></td>
                         <td><?php echo (int)($row['shortage_overage_qty'] ?? 0); ?></td>
                         <td><?php echo number_format((float)($row['shortage_overage_value'] ?? 0), 2); ?></td>
                         <td><?php echo htmlspecialchars($row['remarks'] ?: ($row['notes'] ?: $row['condition_status'])); ?></td>

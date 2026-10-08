@@ -167,6 +167,22 @@ ALTER TABLE items
     ADD COLUMN donor_name_organization VARCHAR(150) NULL,
     ADD COLUMN donor_office_department VARCHAR(150) NULL;
 
+SET @has_is_consumable := (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'items'
+      AND COLUMN_NAME = 'is_consumable'
+);
+
+SET @sql_is_consumable := IF(@has_is_consumable = 0,
+    "ALTER TABLE items ADD COLUMN is_consumable TINYINT(1) NOT NULL DEFAULT 0",
+    "SELECT 1"
+);
+PREPARE stmt_is_consumable FROM @sql_is_consumable;
+EXECUTE stmt_is_consumable;
+DEALLOCATE PREPARE stmt_is_consumable;
+
 UPDATE items
 SET acquisition_type = 'Purchased'
 WHERE acquisition_type IS NULL;

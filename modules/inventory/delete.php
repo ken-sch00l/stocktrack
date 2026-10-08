@@ -13,13 +13,13 @@ verify_csrf_token();
 $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
 
 if ($id) {
-    $usage_stmt = $conn->prepare("SELECT COALESCE(SUM(CASE WHEN action = 'Borrowed' THEN quantity WHEN action = 'Used' THEN quantity WHEN action = 'Returned' THEN -quantity ELSE 0 END), 0) AS allocated_quantity FROM logbook WHERE item_id = ?");
+    $usage_stmt = $conn->prepare("SELECT COALESCE(SUM(CASE WHEN action = 'Borrowed' THEN quantity WHEN action = 'Returned' THEN -quantity ELSE 0 END), 0) AS outstanding_borrowed_quantity FROM logbook WHERE item_id = ?");
     $usage_stmt->bind_param("i", $id);
     $usage_stmt->execute();
-    $allocated_quantity = (int)$usage_stmt->get_result()->fetch_assoc()['allocated_quantity'];
+    $outstanding_borrowed_quantity = (int)$usage_stmt->get_result()->fetch_assoc()['outstanding_borrowed_quantity'];
 
-    if ($allocated_quantity > 0) {
-        header("Location: /stocktrack/modules/inventory/index.php?error=" . urlencode("This item cannot be deleted because {$allocated_quantity} item(s) are currently allocated or borrowed."));
+    if ($outstanding_borrowed_quantity > 0) {
+        header("Location: /stocktrack/modules/inventory/index.php?error=" . urlencode("This item cannot be deleted because {$outstanding_borrowed_quantity} item(s) are still borrowed or outstanding."));
         exit();
     }
 

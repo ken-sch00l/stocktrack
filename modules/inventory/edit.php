@@ -46,6 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $condition                = in_array($condition, ['Serviceable', 'Unserviceable'], true) ? $condition : 'Serviceable';
     $date_acquired            = ($_POST['date_acquired'] ?? '') ?: null;
     $unit_measure             = trim((string)($_POST['unit_measure'] ?? ''));
+    $is_consumable            = isset($_POST['is_consumable']) ? 1 : 0;
     $unit                     = $unit_measure;
     $unit_value               = max(0, (float)str_replace(',', '', (string)($_POST['unit_value'] ?? 0)));
     $balance_per_card         = max(0, (int)($_POST['balance_per_card'] ?? 0));
@@ -74,20 +75,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $donor_office_department = $donor_office_department !== '' ? $donor_office_department : null;
     }
 
-    $usage_stmt = $conn->prepare("SELECT COALESCE(SUM(CASE WHEN action = 'Borrowed' THEN quantity WHEN action = 'Used' THEN quantity WHEN action = 'Returned' THEN -quantity ELSE 0 END), 0) AS allocated_quantity FROM logbook WHERE item_id = ?");
+    $usage_stmt = $conn->prepare("SELECT COALESCE(SUM(CASE WHEN action = 'Borrowed' THEN quantity WHEN action = 'Returned' THEN -quantity ELSE 0 END), 0) AS outstanding_borrowed_quantity FROM logbook WHERE item_id = ?");
     $usage_stmt->bind_param("i", $id);
     $usage_stmt->execute();
-    $allocated_quantity = (int)$usage_stmt->get_result()->fetch_assoc()['allocated_quantity'];
+    $outstanding_borrowed_quantity = (int)$usage_stmt->get_result()->fetch_assoc()['outstanding_borrowed_quantity'];
 
     if (!$item_name || !$date_acquired || !$unit_measure || !in_array($acquisition_type, ['Purchased', 'Donated', 'Other'], true)) {
         $error = 'Description, date acquired, unit of measure, and a valid acquisition type are required.';
-    } elseif ($quantity < $allocated_quantity) {
-        $error = "On-hand quantity cannot be lower than the {$allocated_quantity} item(s) currently allocated or borrowed.";
+    } elseif ($quantity < $outstanding_borrowed_quantity) {
+        $error = "On-hand quantity cannot be lower than the {$outstanding_borrowed_quantity} item(s) currently borrowed or outstanding.";
     }
 
     if (!$error) {
-        $stmt = $conn->prepare("UPDATE items SET property_ics_number=?, serial_number=?, item_name=?, category_id=?, condition_status=?, quantity=?, unit=?, date_purchased=?, date_acquired=?, unit_measure=?, unit_value=?, balance_per_card=?, on_hand_per_count=?, shortage_overage_qty=?, shortage_overage_value=?, person_in_charge=?, position=?, last_inventory_date=?, remarks=?, updated_at=NOW() WHERE item_id=?");
-        $stmt->bind_param("sssisissssdiiidssssi", $property_ics_number, $serial_number, $item_name, $category_id, $condition, $quantity, $unit, $date_purchased, $date_acquired, $unit_measure, $unit_value, $balance_per_card, $on_hand_per_count, $shortage_overage_qty, $shortage_overage_value, $person_charge, $position, $last_inventory, $remarks, $id);
+        $stmt = $conn->prepare("UPDATE items SET property_ics_number=?, serial_number=?, item_name=?, category_id=?, condition_status=?, is_consumable=?, quantity=?, unit=?, date_purchased=?, date_acquired=?, unit_measure=?, unit_value=?, balance_per_card=?, on_hand_per_count=?, shortage_overage_qty=?, shortage_overage_value=?, person_in_charge=?, position=?, last_inventory_date=?, remarks=?, updated_at=NOW() WHERE item_id=?");
+        $stmt->bind_param("sssisiiissssdiiidsssi", $property_ics_number, $serial_number, $item_name, $category_id, $condition, $is_consumable, $quantity, $unit, $date_purchased, $date_acquired, $unit_measure, $unit_value, $balance_per_card, $on_hand_per_count, $shortage_overage_qty, $shortage_overage_value, $person_charge, $position, $last_inventory, $remarks, $id);
 
         if ($stmt->execute()) {
             $metadata_sql = "UPDATE items SET acquisition_type = ?, {$donor_name_field} = ?, {$donor_office_field} = ? WHERE item_id = ?";
@@ -205,6 +206,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <option value="Serviceable" <?php echo $form['condition_status'] === 'Serviceable' ? 'selected' : ''; ?>>Serviceable</option>
                         <option value="Unserviceable" <?php echo $form['condition_status'] === 'Unserviceable' ? 'selected' : ''; ?>>Unserviceable</option>
                     </select>
+                </div>
+                <div class="paper-entry-field span-3">
+                    <label class="paper-entry-label" for="is_consumable">Usage</label>
+                    <label class="form-check">
+                        <input type="checkbox" id="is_consumable" name="is_consumable" value="1" class="form-check-input" <?php echo !empty($form['is_consumable']) ? 'checked' : ''; ?>>
+                        <span class="form-check-label">Single-use / consumable</span>
+                    </label>
                 </div>
                 <div class="paper-entry-field span-2">
                     <label class="paper-entry-label">Person in Charge</label>

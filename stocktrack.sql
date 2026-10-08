@@ -1,6 +1,9 @@
 -- StockTrack: An Inventory and Records Management System
 -- Barangay Puguis, La Trinidad, Benguet
 -- Database: stocktrack
+--
+-- Fresh installs should import this file once.
+-- Legacy upgrades from older databases should use migrations/complete_upgrade.sql.
 
 CREATE DATABASE IF NOT EXISTS stocktrack;
 USE stocktrack;
@@ -52,6 +55,7 @@ CREATE TABLE items (
     item_name VARCHAR(150) NOT NULL,
     category_id INT,
     condition_status ENUM('Serviceable', 'Unserviceable') NOT NULL DEFAULT 'Serviceable',
+    is_consumable TINYINT(1) NOT NULL DEFAULT 0,
     quantity INT NOT NULL DEFAULT 1,
     unit VARCHAR(50),
     date_purchased DATE,

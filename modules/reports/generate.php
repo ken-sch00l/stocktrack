@@ -298,7 +298,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $period_type) {
                 <button type="submit" name="export_format" value="word" class="btn btn-outline-primary"><i class="bi bi-file-earmark-word me-1"></i>Download Word template</button>
                 <button type="submit" name="export_format" value="excel" class="btn btn-outline-success"><i class="bi bi-file-earmark-excel me-1"></i>Download Excel template</button>
             </div>
-            <p class="form-text mb-0 mt-2">Edit the downloaded file in Microsoft Word or Excel, then print it from that application.</p>
         </div>
     </div>
 
