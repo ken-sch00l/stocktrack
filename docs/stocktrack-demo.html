@@ -1,0 +1,916 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#123b6d">
+  <title>StockTrack</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --navy: #123b6d;
+      --navy-deep: #102a43;
+      --blue: #1769aa;
+      --blue-light: #e9f2fb;
+      --ink: #172b4d;
+      --muted: #65758b;
+      --line: #dce5ef;
+      --canvas: #f4f7fb;
+      --surface: #fff;
+      --green: #18865b;
+      --green-bg: #e7f6ee;
+      --amber: #b96d04;
+      --amber-bg: #fff4dc;
+      --red: #bf3d47;
+      --red-bg: #fff0f0;
+      --purple: #7355bc;
+      --radius: 12px;
+      --shadow: 0 8px 24px rgba(23, 43, 77, .07);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; background: var(--canvas); color: var(--ink); font-family: "Segoe UI", Arial, sans-serif; }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    .topbar { position: sticky; z-index: 30; top: 0; height: 66px; display: flex; align-items: center; gap: 16px; padding: 0 26px; background: var(--navy); color: white; box-shadow: 0 2px 8px #102a4320; }
+    .brand { display: flex; align-items: center; gap: 11px; min-width: 220px; color: #fff; font-size: 20px; font-weight: 750; letter-spacing: -.3px; }
+    .brand-mark { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 10px; background: #ffffff1c; color: #a9d7fa; }
+    .brand-mark svg { width: 21px; height: 21px; }
+    .top-search { display: flex; align-items: center; gap: 9px; width: min(390px, 35vw); height: 38px; padding: 0 12px; border: 1px solid #ffffff30; border-radius: 9px; background: #ffffff12; color: #d6e6f2; }
+    .top-search input { width: 100%; border: 0; outline: 0; background: transparent; color: #fff; }
+    .top-search input::placeholder { color: #c0d0df; }
+    .top-spacer { flex: 1; }
+    .role-switcher { display: flex; align-items: center; gap: 7px; padding-right: 15px; border-right: 1px solid #ffffff32; color: #c8d8e8; font-size: 10px; white-space: nowrap; }
+    .role-switcher select { max-width: 142px; padding: 7px 27px 7px 9px; border: 1px solid #ffffff3c; border-radius: 7px; outline: 0; background: #ffffff12; color: white; font-size: 11px; font-weight: 700; }
+    .role-switcher option { color: var(--ink); background: white; }
+    .user-menu { display: flex; align-items: center; gap: 10px; padding-left: 14px; border-left: 1px solid #ffffff32; }
+    .avatar { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 50%; background: #d7eaff; color: var(--navy); font-size: 12px; font-weight: 800; }
+    .user-name { font-size: 12px; font-weight: 700; }
+    .user-sub { margin-top: 2px; color: #c0d0df; font-size: 10px; }
+    .layout { display: flex; min-height: calc(100vh - 66px); }
+    .sidebar { position: fixed; z-index: 20; top: 66px; bottom: 0; left: 0; display: flex; width: 238px; flex-direction: column; overflow-y: auto; padding: 19px 13px 16px; background: var(--navy-deep); color: #fff; }
+    .nav-caption { padding: 14px 12px 7px; color: #91a7bd; font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .nav-link { display: flex; width: 100%; align-items: center; gap: 12px; margin: 2px 0; padding: 10px 12px; border: 0; border-radius: 9px; background: transparent; color: #c4d2df; text-align: left; font-size: 13px; transition: .15s ease; }
+    .nav-link:hover { background: #ffffff10; color: #fff; }
+    .nav-link.active { background: #1d5f95; color: #fff; box-shadow: inset 3px 0 #7dd3fc; }
+    .nav-link svg { width: 17px; height: 17px; flex: 0 0 auto; }
+    .nav-count { margin-left: auto; padding: 2px 7px; border-radius: 999px; background: #ffffff18; color: #d9e8f6; font-size: 10px; }
+    .sidebar-bottom { margin-top: auto; padding: 14px 10px 2px; }
+    .sidebar-note { padding: 12px; border: 1px solid #ffffff17; border-radius: 10px; background: #ffffff09; color: #afc0d0; font-size: 11px; line-height: 1.5; }
+    .sidebar-note strong { display: block; margin-bottom: 4px; color: #fff; font-size: 11px; }
+    main { width: calc(100% - 238px); min-width: 0; margin-left: 238px; padding: 26px 30px 40px; }
+    .view { display: none; animation: enter .18s ease-out; }
+    .view.active { display: block; }
+    @keyframes enter { from { opacity: .5; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+    .page-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 22px; }
+    .eyebrow { margin-bottom: 6px; color: var(--blue); font-size: 10px; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
+    h1 { margin: 0; color: var(--ink); font-size: clamp(23px, 2.5vw, 29px); letter-spacing: -.7px; line-height: 1.15; }
+    .page-desc { margin: 7px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .btn { display: inline-flex; min-height: 38px; align-items: center; justify-content: center; gap: 8px; padding: 8px 13px; border: 1px solid transparent; border-radius: 8px; font-size: 12px; font-weight: 700; transition: .15s ease; white-space: nowrap; }
+    .btn svg { width: 15px; height: 15px; }
+    .btn-primary { background: var(--blue); color: #fff; box-shadow: 0 3px 8px #1769aa25; }
+    .btn-primary:hover { background: #0f568f; }
+    .btn-secondary { border-color: var(--line); background: #fff; color: var(--ink); }
+    .btn-secondary:hover { background: #f4f7fb; }
+    .btn-quiet { background: transparent; color: var(--blue); }
+    .btn-small { min-height: 30px; padding: 5px 9px; font-size: 11px; }
+    .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin: 0 0 20px; }
+    .stat { position: relative; display: flex; min-height: 112px; align-items: flex-start; gap: 13px; padding: 17px; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
+    .stat:before { position: absolute; top: 0; bottom: 0; left: 0; width: 3px; background: var(--stat-color, var(--blue)); content: ""; }
+    .stat-icon { display: grid; width: 39px; height: 39px; flex: 0 0 auto; place-items: center; border-radius: 11px; background: var(--stat-bg, var(--blue-light)); color: var(--stat-color, var(--blue)); }
+    .stat-icon svg { width: 19px; height: 19px; }
+    .stat-label { color: var(--muted); font-size: 11px; font-weight: 650; }
+    .stat-value { margin-top: 7px; color: var(--ink); font-size: 25px; font-weight: 780; letter-spacing: -.8px; line-height: 1; }
+    .stat-foot { margin-top: 7px; color: #78889d; font-size: 10px; }
+    .grid-two { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(260px, .8fr); gap: 16px; align-items: stretch; margin-bottom: 17px; }
+    .card { min-width: 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
+    .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px; border-bottom: 1px solid #edf1f5; }
+    .card-title { margin: 0; color: var(--ink); font-size: 13px; font-weight: 750; }
+    .card-subtitle { margin-top: 4px; color: var(--muted); font-size: 11px; }
+    .card-body { padding: 17px 18px; }
+    .table-wrap { overflow: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; text-align: left; }
+    th { padding: 10px 13px; border-bottom: 1px solid #e8edf3; background: #f7f9fc; color: #62738a; font-size: 9px; font-weight: 800; letter-spacing: .055em; text-transform: uppercase; white-space: nowrap; }
+    td { padding: 11px 13px; border-bottom: 1px solid #edf1f5; color: #34465f; vertical-align: middle; }
+    tr:last-child td { border-bottom: 0; }
+    tbody tr:hover { background: #f9fbfd; }
+    .item-main { color: var(--ink); font-weight: 750; }
+    .item-sub { margin-top: 3px; color: #8794a6; font-size: 10px; }
+    .code { color: #536983; font-family: Consolas, "Courier New", monospace; font-size: 10px; }
+    .badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 999px; font-size: 9px; font-weight: 750; white-space: nowrap; }
+    .badge:before { width: 5px; height: 5px; border-radius: 50%; background: currentColor; content: ""; }
+    .badge.green { background: var(--green-bg); color: var(--green); }
+    .badge.amber { background: var(--amber-bg); color: var(--amber); }
+    .badge.red { background: var(--red-bg); color: var(--red); }
+    .badge.blue { background: var(--blue-light); color: var(--blue); }
+    .badge.gray { background: #eef1f5; color: #68788b; }
+    .welcome-card { position: relative; min-height: 128px; overflow: hidden; padding: 19px; border-radius: var(--radius); background: linear-gradient(115deg, #153f70, #216d9e); color: white; box-shadow: var(--shadow); }
+    .welcome-card:after { position: absolute; right: -25px; bottom: -100px; width: 240px; height: 240px; border: 1px solid #ffffff20; border-radius: 50%; box-shadow: 0 0 0 24px #ffffff08, 0 0 0 48px #ffffff07; content: ""; }
+    .welcome-kicker { color: #c2e2f7; font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+    .welcome-title { position: relative; z-index: 1; max-width: 510px; margin-top: 9px; font-size: 20px; font-weight: 740; letter-spacing: -.3px; line-height: 1.28; }
+    .welcome-copy { position: relative; z-index: 1; margin-top: 6px; color: #d1e4f3; font-size: 11px; }
+    .welcome-actions { position: relative; z-index: 1; display: flex; gap: 8px; margin-top: 14px; }
+    .welcome-actions .btn { min-height: 31px; padding: 6px 10px; background: #fff; color: #164b76; font-size: 10px; }
+    .welcome-actions .btn-outline-light { border-color: #ffffff6b; background: #ffffff13; color: #fff; }
+    .callout { display: flex; align-items: flex-start; gap: 11px; padding: 14px; border: 1px solid #f1dfb8; border-radius: 10px; background: #fffaf0; }
+    .callout-icon { display: grid; width: 32px; height: 32px; flex: 0 0 auto; place-items: center; border-radius: 9px; background: #ffefc8; color: #9d6a0a; }
+    .callout-icon svg { width: 16px; height: 16px; }
+    .callout-title { color: #624b22; font-size: 11px; font-weight: 750; }
+    .callout-copy { margin-top: 4px; color: #806b43; font-size: 10px; line-height: 1.45; }
+    .quick-links { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-top: 16px; }
+    .quick-link { display: flex; align-items: center; gap: 11px; padding: 13px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: inherit; text-align: left; transition: .15s; }
+    .quick-link:hover { transform: translateY(-1px); border-color: #a8c6df; box-shadow: var(--shadow); }
+    .quick-icon { display: grid; width: 34px; height: 34px; flex: 0 0 auto; place-items: center; border-radius: 9px; background: var(--blue-light); color: var(--blue); }
+    .quick-icon svg { width: 17px; height: 17px; }
+    .quick-link strong { display: block; font-size: 11px; }
+    .quick-link small { display: block; margin-top: 3px; color: var(--muted); font-size: 9px; }
+    .toolbar { display: flex; align-items: center; gap: 9px; margin-bottom: 13px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: white; box-shadow: var(--shadow); }
+    .field { width: 100%; min-height: 37px; padding: 8px 10px; border: 1px solid #dce4ed; border-radius: 7px; outline: 0; background: #fff; color: var(--ink); font-size: 11px; }
+    .field:focus { border-color: #72a9d5; box-shadow: 0 0 0 3px #1769aa17; }
+    .search-field { position: relative; min-width: 200px; flex: 1; }
+    .search-field svg { position: absolute; top: 11px; left: 11px; width: 15px; height: 15px; color: #8594a7; }
+    .search-field input { padding-left: 33px; }
+    .filter-select { width: auto; min-width: 145px; }
+    .inventory-summary { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 14px; }
+    .mini-stat { padding: 13px 15px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+    .mini-stat-label { color: var(--muted); font-size: 10px; }
+    .mini-stat-number { margin-top: 4px; color: var(--ink); font-size: 19px; font-weight: 760; }
+    .table-card { overflow: hidden; }
+    .table-card .card-head { padding: 14px 16px; }
+    .table-foot { display: flex; justify-content: space-between; gap: 12px; padding: 11px 16px; border-top: 1px solid #edf1f5; color: var(--muted); font-size: 10px; }
+    .history-metrics { display: grid; grid-template-columns: repeat(3,1fr); gap: 13px; margin-bottom: 15px; }
+    .history-metric { display: flex; align-items: center; gap: 11px; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: white; }
+    .history-metric .stat-icon { width: 34px; height: 34px; }
+    .history-metric b { display: block; font-size: 17px; }
+    .history-metric small { display: block; margin-top: 2px; color: var(--muted); font-size: 9px; }
+    .report-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 13px; margin-bottom: 18px; }
+    .report-card { display: flex; min-height: 174px; flex-direction: column; padding: 16px; border: 1px solid var(--line); border-radius: 11px; background: white; box-shadow: var(--shadow); }
+    .report-icon { display: grid; width: 39px; height: 39px; place-items: center; border-radius: 10px; background: var(--report-bg); color: var(--report-color); }
+    .report-icon svg { width: 20px; height: 20px; }
+    .report-code { margin-top: 12px; font-size: 14px; font-weight: 800; }
+    .report-name { min-height: 32px; margin-top: 4px; color: var(--muted); font-size: 10px; line-height: 1.4; }
+    .report-card .btn { width: 100%; margin-top: auto; }
+    .report-note { display: flex; gap: 9px; align-items: flex-start; margin-bottom: 16px; padding: 12px 14px; border-radius: 9px; background: #f2effb; color: #59467f; font-size: 10px; line-height: 1.5; }
+    .report-note svg { width: 16px; height: 16px; flex: 0 0 auto; }
+    .type-ris { --report-bg: #eaf2ff; --report-color: #3569b5; }
+    .type-par { --report-bg: #fff0f0; --report-color: #c44b55; }
+    .type-ics { --report-bg: #e7f6ee; --report-color: #18865b; }
+    .type-ripe { --report-bg: #fff4dc; --report-color: #b96d04; }
+    .empty { padding: 27px; color: var(--muted); text-align: center; font-size: 11px; }
+    .modal-backdrop { position: fixed; z-index: 60; inset: 0; display: none; align-items: center; justify-content: center; padding: 20px; background: #0c1c2ca3; }
+    .modal-backdrop.open { display: flex; }
+    .modal { width: min(620px, 100%); max-height: min(88vh, 820px); overflow: auto; border-radius: 14px; background: white; box-shadow: 0 24px 70px #06142355; animation: enter .17s ease-out; }
+    .modal.wide { width: min(880px, 100%); }
+    .modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 18px 20px; border-bottom: 1px solid #edf1f5; }
+    .modal-head h2 { margin: 0; font-size: 17px; }
+    .modal-head p { margin: 5px 0 0; color: var(--muted); font-size: 11px; }
+    .close-btn { display: grid; width: 30px; height: 30px; place-items: center; border: 0; border-radius: 7px; background: #f0f3f7; color: #52647a; font-size: 18px; }
+    .modal-body { padding: 18px 20px; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 13px 20px; border-top: 1px solid #edf1f5; }
+    .form-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+    .form-row label { display: block; margin-bottom: 6px; color: #52647a; font-size: 10px; font-weight: 750; }
+    .form-row.full { grid-column: 1 / -1; }
+    fieldset.form-row { min-width: 0; margin: 0; padding: 11px; border: 1px solid #dce3eb; border-radius: 8px; }
+    fieldset.form-row legend { padding: 0 5px; color: #52647a; font-size: 10px; font-weight: 750; }
+    .check-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; max-height: 170px; overflow: auto; }
+    .check-row { display: flex !important; align-items: center; gap: 7px; margin: 0 !important; padding: 8px; border: 1px solid #edf1f5; border-radius: 7px; color: var(--ink) !important; font-size: 10px !important; font-weight: 550 !important; }
+    .check-row input { accent-color: var(--green); }
+    .detail-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px; }
+    .detail-cell { padding: 11px; border: 1px solid #edf1f5; border-radius: 8px; background: #fafbfd; }
+    .detail-cell small { display: block; margin-bottom: 5px; color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: .05em; }
+    .detail-cell strong { color: var(--ink); font-size: 12px; }
+    .toast { position: fixed; z-index: 90; right: 22px; bottom: 22px; display: flex; align-items: center; gap: 9px; max-width: 360px; padding: 12px 15px; border-radius: 10px; background: #173f34; color: white; box-shadow: 0 10px 30px #081d2442; font-size: 11px; opacity: 0; pointer-events: none; transform: translateY(8px); transition: .2s; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast svg { width: 16px; height: 16px; color: #7fe0b3; }
+    .report-preview { padding: 26px; border: 1px solid #dce2e8; background: white; color: #1c2939; }
+    .preview-top { display: flex; justify-content: space-between; gap: 20px; color: #586a7c; font-size: 9px; text-transform: uppercase; letter-spacing: .06em; }
+    .preview-title { margin: 18px 0 5px; text-align: center; font-size: 16px; font-weight: 800; }
+    .preview-subtitle { margin-bottom: 20px; color: #64748b; text-align: center; font-size: 10px; }
+    .preview-table { margin-top: 12px; }
+    .preview-table th, .preview-table td { padding: 8px; border: 1px solid #d8dee6; font-size: 9px; }
+    .preview-table th { background: #f2f5f8; }
+    .preview-signatures { display: flex; gap: 30px; margin-top: 35px; }
+    .preview-signatures span { flex: 1; padding-top: 6px; border-top: 1px solid #667; color: #68798a; text-align: center; font-size: 9px; }
+    .mobile-menu { display: none; }
+    @media (max-width: 1100px) {
+      main { padding-right: 21px; padding-left: 21px; }
+      .stats { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .report-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .grid-two { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 760px) {
+      .topbar { height: 58px; padding: 0 14px; gap: 10px; }
+      .brand { min-width: 0; font-size: 17px; }
+      .brand-mark { width: 31px; height: 31px; }
+      .top-search { display: none; }
+      .role-switcher { margin-left: auto; padding-right: 8px; }
+      .role-switcher label { display: none; }
+      .role-switcher select { max-width: 112px; font-size: 10px; }
+      .user-menu { padding-left: 8px; border: 0; }
+      .user-name, .user-sub { display: none; }
+      .sidebar { top: 58px; width: 66px; padding: 12px 8px; }
+      .nav-link { justify-content: center; padding: 11px 8px; font-size: 0; }
+      .nav-link svg { width: 19px; height: 19px; }
+      .nav-count, .nav-caption, .sidebar-bottom { display: none; }
+      main { width: calc(100% - 66px); margin-left: 66px; padding: 18px 13px 30px; }
+      .page-heading { align-items: flex-start; }
+      .page-heading .btn { padding: 7px 9px; font-size: 10px; }
+      .toolbar { flex-wrap: wrap; }
+      .search-field { min-width: 100%; }
+      .filter-select { min-width: 0; flex: 1; }
+      .inventory-summary { grid-template-columns: repeat(2,1fr); }
+      .history-metrics { grid-template-columns: 1fr; gap: 8px; }
+      .quick-links { grid-template-columns: 1fr; }
+      .report-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .form-grid { grid-template-columns: 1fr; }
+      .form-row.full { grid-column: auto; }
+    }
+    @media (max-width: 460px) {
+      .stats { gap: 8px; }
+      .stat { min-height: 91px; gap: 8px; padding: 12px; }
+      .stat-icon { width: 32px; height: 32px; }
+      .stat-value { font-size: 21px; }
+      .stat-foot { font-size: 9px; }
+      .report-grid { grid-template-columns: 1fr; }
+      .report-card { min-height: 150px; }
+      .page-heading { flex-direction: column; }
+      .page-heading > .btn { align-self: flex-start; }
+      .report-preview { padding: 14px; }
+    }
+    @media print {
+      body * { visibility: hidden !important; }
+      #modal, #modal * { visibility: visible !important; }
+      #modal { position: static !important; display: block !important; padding: 0 !important; background: white !important; }
+      #modal .modal { width: 100% !important; max-height: none !important; box-shadow: none !important; overflow: visible !important; }
+      #modal .modal-head, #modal .modal-actions { display: none !important; }
+      #modal .modal-body { padding: 0 !important; }
+      .report-preview { border: 0 !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark" data-icon="box"></span><span>StockTrack</span></div>
+    <label class="top-search"><span data-icon="search"></span><input id="globalSearch" type="search" placeholder="Search items or tracking number"></label>
+    <div class="top-spacer"></div>
+    <div class="role-switcher"><label for="roleSelect">View as</label><select id="roleSelect" aria-label="Switch user role"><option value="admin">Administrator</option><option value="treasurer">Treasurer</option><option value="committee">Committee on Inventory</option></select></div>
+    <div class="user-menu"><span class="avatar">AD</span><div><div class="user-name" id="currentUserName">Administrator</div><div class="user-sub">Signed in</div></div></div>
+  </header>
+  <div class="layout">
+    <aside class="sidebar" aria-label="Main navigation">
+      <div class="nav-caption">Workspace</div>
+      <button class="nav-link active" data-page="dashboard"><span data-icon="dashboard"></span>Dashboard</button>
+      <button class="nav-link" data-page="inventory"><span data-icon="box"></span>Inventory<span class="nav-count" id="navItemCount"></span></button>
+      <button class="nav-link" data-page="history"><span data-icon="history"></span>Inventory History</button>
+      <button class="nav-link" data-page="logbook"><span data-icon="book"></span>Logbook<span class="nav-count" id="navLogCount"></span></button>
+      <button class="nav-link" data-page="reports"><span data-icon="report"></span>Reports</button>
+      <div id="roleNav"></div>
+    </aside>
+    <main>
+      <section class="view active" id="view-dashboard">
+        <div class="page-heading"><div><div class="eyebrow">Overview</div><h1>Dashboard</h1><p class="page-desc">A quick view of inventory and recent activity.</p></div><button class="btn btn-secondary" data-action="refresh"><span data-icon="refresh"></span>Refresh</button></div>
+        <div class="welcome-card"><div class="welcome-kicker" id="welcomeGreeting">Good morning, Administrator</div><div class="welcome-title">Keep every item and its activity in one clear place.</div><div class="welcome-copy">A current snapshot of the StockTrack inventory workspace.</div><div class="welcome-actions"><button class="btn" data-page="inventory">View inventory</button><button class="btn btn-outline-light" data-page="logbook">Open logbook</button></div></div>
+        <div class="stats" style="margin-top:16px" id="dashboardStats"></div>
+        <div class="grid-two">
+          <div class="card table-card"><div class="card-head"><div><h2 class="card-title">Recently recorded items</h2><div class="card-subtitle">Latest inventory records</div></div><button class="btn btn-quiet btn-small" data-page="inventory">View all <span data-icon="arrow"></span></button></div><div class="table-wrap"><table><thead><tr><th>Item</th><th>Property / ICS No.</th><th>Condition</th><th>Date added</th></tr></thead><tbody id="recentItems"></tbody></table></div></div>
+          <div class="card"><div class="card-head"><div><h2 class="card-title">Attention</h2><div class="card-subtitle">Items currently marked as out</div></div><span class="badge amber">Needs follow-up</span></div><div class="card-body"><div class="callout"><span class="callout-icon" data-icon="alert"></span><div><div class="callout-title"><span id="outstandingQty">0</span> item units are currently borrowed</div><div class="callout-copy">Review the logbook to see who has an item and its return status.</div></div></div><button class="btn btn-secondary btn-small" style="margin-top:13px" data-page="logbook">Review logbook <span data-icon="arrow"></span></button></div></div>
+        </div>
+        <div class="quick-links">
+          <button class="quick-link" data-page="inventory"><span class="quick-icon" data-icon="box"></span><span><strong>Browse inventory</strong><small>Find item records and condition</small></span></button>
+          <button class="quick-link" data-page="history"><span class="quick-icon" data-icon="history"></span><span><strong>Review item history</strong><small>Filter records by time period</small></span></button>
+          <button class="quick-link" data-page="reports"><span class="quick-icon" data-icon="report"></span><span><strong>Preview reports</strong><small>Open a report layout</small></span></button>
+        </div>
+      </section>
+
+      <section class="view" id="view-inventory">
+        <div class="page-heading"><div><div class="eyebrow">Records</div><h1>Inventory</h1><p class="page-desc">Search and review item details, quantities, and condition.</p></div><div style="display:flex;gap:8px"><button class="btn btn-secondary" id="physicalCountButton" data-action="physical-count">Physical Count</button><button class="btn btn-primary" data-action="add-item"><span data-icon="plus"></span>Add Item</button></div></div>
+        <div class="inventory-summary" id="inventorySummary"></div>
+        <div class="toolbar"><label class="search-field"><span data-icon="search"></span><input class="field" id="inventorySearch" type="search" placeholder="Search item, property no., serial or tracking number"></label><select id="conditionFilter" class="field filter-select" aria-label="Filter by condition"><option value="">All conditions</option><option>Serviceable</option><option>Unserviceable</option></select><select id="categoryFilter" class="field filter-select" aria-label="Filter by category"><option value="">All categories</option></select><select id="acquisitionFilter" class="field filter-select" aria-label="Filter by acquisition"><option value="">All acquisitions</option><option>Purchased</option><option>Donated</option><option>Other</option></select><select id="inventorySort" class="field filter-select" aria-label="Sort inventory"><option value="name">Item name</option><option value="tracking">Tracking number</option><option value="category">Category</option><option value="condition">Condition</option><option value="quantity">Quantity</option><option value="acquired">Date acquired</option></select><select id="inventoryDirection" class="field filter-select" aria-label="Sort direction"><option value="ASC">Up</option><option value="DESC">Down</option></select><button class="btn btn-secondary" id="clearInventoryFilters">Clear</button></div>
+        <div class="card table-card"><div class="card-head"><div><h2 class="card-title">Inventory records</h2><div class="card-subtitle"><span id="inventoryResultCount"></span> items</div></div></div><div class="table-wrap"><table><thead><tr><th>Tracking no.</th><th>Article</th><th>Description</th><th>Property / ICS no.</th><th>Date acquired</th><th>Unit</th><th>Unit value</th><th>Balance per card</th><th>On hand</th><th>Available</th><th>Shortage / overage qty</th><th>Shortage / overage value</th><th>Remarks</th><th>Condition</th><th>Actions</th></tr></thead><tbody id="inventoryRows"></tbody></table></div><div class="table-foot"><span>Use View for complete item details</span><span>Horizontal scroll reveals all fields</span></div></div>
+      </section>
+
+      <section class="view" id="view-history">
+        <div class="page-heading"><div><div class="eyebrow">Records by period</div><h1>Inventory History</h1><p class="page-desc">Review item records added during a selected time period.</p></div><button class="btn btn-secondary" data-action="print-history"><span data-icon="print"></span>Print</button></div>
+        <div class="toolbar"><select id="historyPeriod" class="field filter-select"><option value="all">All records</option><option value="weekly">Last 7 days</option><option value="monthly">Monthly</option><option value="yearly">Yearly</option></select><input id="historyMonth" class="field filter-select" type="month" value="2026-10" aria-label="Select month"><select id="historySort" class="field filter-select"><option value="name">Name</option><option value="category">Category</option><option value="condition">Condition</option><option value="quantity">Quantity</option><option value="acquired">Purchase date</option><option value="recorded">Date recorded</option></select><select id="historyDirection" class="field filter-select"><option value="ASC">Up</option><option value="DESC">Down</option></select><button class="btn btn-primary" id="applyHistory">Apply filter</button><button class="btn btn-secondary" id="clearHistory">Clear</button></div>
+        <div class="history-metrics" id="historyMetrics"></div>
+        <div class="card table-card"><div class="card-head"><div><h2 class="card-title">Inventory records</h2><div class="card-subtitle" id="historyPeriodLabel">All records</div></div><span class="badge gray" id="historyCount"></span></div><div class="table-wrap"><table><thead><tr><th>Property / ICS No.</th><th>Item name</th><th>Category</th><th>Condition</th><th>Qty</th><th>Date purchased</th><th>Person in charge</th><th>Date recorded</th></tr></thead><tbody id="historyRows"></tbody></table></div></div>
+      </section>
+
+      <section class="view" id="view-logbook">
+        <div class="page-heading"><div><div class="eyebrow">Item activity</div><h1>Logbook</h1><p class="page-desc">Review borrowed, used, and returned item transactions.</p></div><button class="btn btn-primary" data-action="add-log"><span data-icon="plus"></span>Add Entry</button></div>
+        <div class="toolbar"><label class="search-field"><span data-icon="search"></span><input class="field" id="logSearch" type="search" placeholder="Search item, tracking no., borrower or purpose"></label><select id="actionFilter" class="field filter-select"><option value="">All actions</option><option>Borrowed</option><option>Used</option><option>Returned</option></select><input id="logFrom" class="field filter-select" type="date" aria-label="From date"><input id="logTo" class="field filter-select" type="date" aria-label="To date"><select id="logSort" class="field filter-select" aria-label="Sort logbook"><option value="date">Action date</option><option value="item">Item</option><option value="borrower">Borrower</option><option value="action">Action</option><option value="quantity">Quantity</option><option value="recorded">Date recorded</option></select><select id="logDirection" class="field filter-select" aria-label="Sort direction"><option value="DESC">Down</option><option value="ASC">Up</option></select><button class="btn btn-secondary" id="clearLogFilters">Clear</button></div>
+        <div class="card table-card"><div class="card-head"><div><h2 class="card-title">Transaction entries</h2><div class="card-subtitle" id="logLimitNote">Showing the 10 most recent entries</div></div><div style="display:flex;align-items:center;gap:8px"><span class="badge blue" id="logCount"></span><button class="btn btn-secondary btn-small" id="logExpandButton" data-action="toggle-log-entries" hidden>Show all</button></div></div><div class="table-wrap"><table><thead><tr><th>Item</th><th>Tracking no.</th><th>Action</th><th>Qty</th><th>Person</th><th>Purpose</th><th>Date recorded</th><th>Expected / actual return</th><th>Return condition</th><th>Status</th><th>Recorded by</th></tr></thead><tbody id="logRows"></tbody></table></div></div>
+        <div class="card table-card" style="margin-top:16px"><div class="card-head"><div><h2 class="card-title">Outstanding borrowed items</h2><div class="card-subtitle">Return an item directly from its borrowing record</div></div><span class="badge amber">Follow-up</span></div><div class="table-wrap"><table><thead><tr><th>Item</th><th>Borrowed by</th><th>Purpose</th><th>Date borrowed</th><th>Expected return</th><th>Quantity still out</th><th>Action</th></tr></thead><tbody id="outstandingRows"></tbody></table></div></div>
+      </section>
+
+      <section class="view" id="view-reports">
+        <div class="page-heading"><div><div class="eyebrow">Printable outputs</div><h1>Reports</h1><p class="page-desc">Choose a report type to preview its layout.</p></div></div>
+        <div class="report-grid" id="reportCards"></div>
+        <div class="report-note"><span data-icon="info"></span><span>Report layouts have not been formally validated as official government or COA-compliant forms.</span></div>
+        <div class="card table-card"><div class="card-head"><div><h2 class="card-title">Recent reports generated</h2><div class="card-subtitle">Previously generated reports</div></div><span class="badge gray" id="reportCount"></span></div><div class="toolbar"><select id="reportTypeFilter" class="field filter-select" aria-label="Filter reports by type"><option value="">All reports</option><option>RIS</option><option>ICS</option><option>RIPE</option><option>PAR</option></select><select id="reportSort" class="field filter-select" aria-label="Sort reports"><option value="date">Date</option><option value="type">Type</option><option value="period">Period</option><option value="user">Generated by</option></select><select id="reportDirection" class="field filter-select" aria-label="Report sort direction"><option value="DESC">Descending</option><option value="ASC">Ascending</option></select><button class="btn btn-secondary" id="clearReportFilters">Clear</button></div><div class="table-wrap"><table><thead><tr><th>Report type</th><th>Period</th><th>Generated by</th><th>Date generated</th></tr></thead><tbody id="reportRows"></tbody></table></div></div>
+      </section>
+
+      <section class="view" id="view-categories">
+        <div class="page-heading"><div><div class="eyebrow">Administration</div><h1>Categories</h1><p class="page-desc">Review the item categories used to organize inventory records.</p></div><button class="btn btn-primary" data-action="add-category"><span data-icon="plus"></span>Add Category</button></div>
+        <div class="toolbar"><select id="categorySort" class="field filter-select"><option value="name">Name</option><option value="items">Item count</option></select><select id="categoryDirection" class="field filter-select"><option value="ASC">Ascending</option><option value="DESC">Descending</option></select></div>
+        <div class="card table-card"><div class="card-head"><div><h2 class="card-title">Inventory categories</h2><div class="card-subtitle">Category totals update with the inventory list</div></div><span class="badge blue" id="categoryCount"></span></div><div class="table-wrap"><table><thead><tr><th>Category</th><th>Items</th><th>Share of inventory</th><th>Example item</th><th></th></tr></thead><tbody id="categoryRows"></tbody></table></div></div>
+      </section>
+
+      <section class="view" id="view-users">
+        <div class="page-heading"><div><div class="eyebrow">Administration</div><h1>Users</h1><p class="page-desc">Review accounts and the access roles available in StockTrack.</p></div><button class="btn btn-primary" data-action="new-user"><span data-icon="plus"></span>Add User</button></div>
+        <div class="card table-card"><div class="card-head"><div><h2 class="card-title">User accounts</h2><div class="card-subtitle">Role-based access overview</div></div><span class="badge blue" id="userCount"></span></div><div class="table-wrap"><table><thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Date added</th><th>Actions</th></tr></thead><tbody id="userRows"></tbody></table></div></div>
+      </section>
+
+      <section class="view" id="view-audit">
+        <div class="page-heading"><div><div class="eyebrow">Oversight</div><h1>Activity Log</h1><p class="page-desc">A chronological view of recent inventory activity.</p></div></div>
+        <div class="toolbar"><select id="auditFilter" class="field filter-select"><option value="all">All activity</option><option value="login">Login</option><option value="inventory">Inventory</option><option value="users">Users</option><option value="security">Security</option></select><select id="auditSort" class="field filter-select"><option value="date">Date</option><option value="action">Action</option><option value="entity">Entity</option><option value="user">User</option></select><select id="auditDirection" class="field filter-select"><option value="DESC">Descending</option><option value="ASC">Ascending</option></select><button class="btn btn-primary" id="applyAudit">Apply sorting</button></div>
+        <div class="card table-card"><div class="card-head"><div><h2 class="card-title">Recent activity</h2><div class="card-subtitle">Inventory, accounts, and security activity</div></div><span class="badge gray" id="activityCount"></span></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>User</th><th>Action</th><th>Entity</th><th>Details</th><th>IP address</th></tr></thead><tbody id="activityRows"></tbody></table></div></div>
+      </section>
+
+      <section class="view" id="view-settings">
+        <div class="page-heading"><div><div class="eyebrow">Administration</div><h1>Report Settings</h1><p class="page-desc">Set the organization details shown in generated reports.</p></div></div>
+        <div class="card"><div class="card-head"><div><h2 class="card-title">Report header and signatories</h2><div class="card-subtitle">These details appear on generated reports.</div></div></div><div class="card-body"><form id="settingsForm" class="form-grid"><div class="form-row"><label>Header line 1</label><input class="field" value="Republic of the Philippines"></div><div class="form-row"><label>Header line 2</label><input class="field" value="Province of Benguet"></div><div class="form-row"><label>Header line 3</label><input class="field" value="Municipality of La Trinidad"></div><div class="form-row"><label>Header line 4</label><input class="field" value="Barangay Puguis"></div><div class="form-row full"><label>Report title</label><input class="field" value="Inventory Report"></div><div class="form-row"><label>As-of place</label><input class="field" value="La Trinidad, Benguet"></div><div class="form-row"><label>Fund cluster</label><input class="field" value="General Fund"></div><div class="form-row"><label>Report date</label><input class="field" type="date" value="2026-10-08"></div><div class="form-row"><label>Assumption date</label><input class="field" type="date" value="2026-01-01"></div><div class="form-row"><label>Accountable person</label><input class="field" value="Administrator"></div><div class="form-row"><label>Accountable position</label><input class="field" value="Accountable Officer"></div><div class="form-row"><label>Prepared by name</label><input class="field" value="Inventory Custodian"></div><div class="form-row"><label>Prepared by position</label><input class="field" value="Property Custodian"></div><div class="form-row"><label>Certified by name</label><input class="field" value="Administrator"></div><div class="form-row"><label>Certified by position</label><input class="field" value="Barangay Official"></div><div class="form-row full"><label>Logo (PNG or JPG)</label><input class="field" type="file" accept="image/png,image/jpeg"></div><div class="form-row full"><button class="btn btn-primary" type="submit"><span data-icon="check"></span>Save Report Settings</button></div></form></div></div>
+      </section>
+
+      <section class="view" id="view-notifications">
+        <div class="page-heading"><div><div class="eyebrow">Oversight</div><h1>Notifications</h1><p class="page-desc">Borrowing, usage, and return activity requiring attention.</p></div><button class="btn btn-secondary" data-action="mark-all-read">Mark all read</button></div>
+        <div class="history-metrics" id="notificationMetrics"></div>
+        <div class="toolbar"><select id="notificationFilter" class="field filter-select"><option value="">All notifications</option><option value="unread">Unread</option><option value="Borrowed">Borrowed</option><option value="Used">Used</option><option value="Returned">Returned</option></select><select id="notificationSort" class="field filter-select"><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="type">Type</option><option value="read">Read status</option></select></div>
+        <div class="card table-card"><div class="card-head"><div><h2 class="card-title">Notification activity</h2><div class="card-subtitle">Recent item activity notices</div></div><span class="badge gray" id="notificationCount"></span></div><div class="table-wrap"><table><thead><tr><th>Type</th><th>Item</th><th>Details</th><th>Date</th><th>Read status</th><th></th></tr></thead><tbody id="notificationRows"></tbody></table></div></div>
+      </section>
+
+      <section class="view" id="view-profile">
+        <div class="page-heading"><div><div class="eyebrow">Account</div><h1>My Profile</h1><p class="page-desc">Review and update account details.</p></div></div>
+        <div class="card"><div class="card-head"><div><h2 class="card-title">Profile details</h2><div class="card-subtitle">Account information and assigned role</div></div></div><div class="card-body"><form id="profileForm" class="form-grid"><div class="form-row"><label for="profileName">Full name</label><input id="profileName" class="field" value="Administrator" required></div><div class="form-row"><label for="profileUsername">Username</label><input id="profileUsername" class="field" value="admin" required></div><div class="form-row"><label for="profileRole">Role</label><input id="profileRole" class="field" value="Administrator" readonly></div><div class="form-row full"><button class="btn btn-primary" type="submit"><span data-icon="check"></span>Save Profile</button></div></form></div></div>
+      </section>
+
+      <section class="view" id="view-password">
+        <div class="page-heading"><div><div class="eyebrow">Account</div><h1>Change Password</h1><p class="page-desc">Update the password associated with this account.</p></div></div>
+        <div class="card"><div class="card-head"><h2 class="card-title">Password details</h2></div><div class="card-body"><form id="passwordForm" class="form-grid"><div class="form-row full"><label for="oldPassword">Current password</label><input id="oldPassword" class="field" type="password" required></div><div class="form-row"><label for="newPassword">New password</label><input id="newPassword" class="field" type="password" minlength="6" required></div><div class="form-row"><label for="confirmPassword">Confirm new password</label><input id="confirmPassword" class="field" type="password" minlength="6" required></div><div class="form-row full"><button class="btn btn-primary" type="submit"><span data-icon="check"></span>Update Password</button></div></form></div></div>
+      </section>
+    </main>
+  </div>
+  <div class="modal-backdrop" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"></div>
+  <div class="toast" id="toast"><span data-icon="check"></span><span id="toastText"></span></div>
+
+  <script>
+    const icons = {
+      box: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="M3 8v9l9 5 9-5V8M12 13v9"/></svg>',
+      dashboard: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="10" width="8" height="11" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/></svg>',
+      history: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.64-6.36L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg>',
+      book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v17H6.5A2.5 2.5 0 0 1 4 17.5v-12Z"/><path d="M4 17.5A2.5 2.5 0 0 1 6.5 15H20M8 7h8M8 10h6"/></svg>',
+      report: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l5 5v13H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>',
+      user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>',
+      search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg>',
+      plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+      arrow: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
+      alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2.8 19a1.4 1.4 0 0 0 1.2 2h16a1.4 1.4 0 0 0 1.2-2L12 3Z"/><path d="M12 9v4M12 17h.01"/></svg>',
+      info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>',
+      refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.5 9A7 7 0 0 1 18 6l2 2M4 16l2 2a7 7 0 0 0 12.5-3"/></svg>',
+      print: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v7H6zM18 12h.01"/></svg>',
+      check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6"/></svg>',
+      clipboard: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M9 5V3h6v2M8 10h8M8 14h8M8 18h5"/></svg>'
+    };
+    document.querySelectorAll('[data-icon]').forEach(function (el) { el.innerHTML = icons[el.dataset.icon] || ''; });
+
+    const items = [
+      { id: 1, name: 'Laptop computer', description: 'Dell Latitude 5420 · Core i5', property: 'PPE-2024-014', tracking: 'TRK-ICT-014', serial: 'DL5420-0841', category: 'ICT Equipment', condition: 'Serviceable', qty: 8, unit: 'unit', value: 46500, acquired: '2024-04-12', person: 'Inventory Custodian', source: 'Purchased', recorded: '2026-10-03' },
+      { id: 2, name: 'Multimedia projector', description: 'Epson EB-E01 · 3300 lumens', property: 'ICS-2025-006', tracking: 'TRK-AV-006', serial: 'EPSEB-2018', category: 'Audio-Visual', condition: 'Serviceable', qty: 2, unit: 'unit', value: 28900, acquired: '2025-02-18', person: 'Inventory Custodian', source: 'Purchased', recorded: '2026-10-02' },
+      { id: 3, name: 'Folding chair', description: 'Steel frame · blue seat', property: 'INV-2023-089', tracking: 'TRK-FUR-089', serial: '—', category: 'Furniture', condition: 'Serviceable', qty: 40, unit: 'pcs', value: 950, acquired: '2023-08-05', person: 'Inventory Custodian', source: 'Purchased', recorded: '2026-09-29' },
+      { id: 4, name: 'Portable sound system', description: 'Speaker with wireless microphone', property: 'PPE-2024-021', tracking: 'TRK-AV-021', serial: 'PS-44192', category: 'Audio-Visual', condition: 'Serviceable', qty: 1, unit: 'set', value: 18400, acquired: '2024-06-20', person: 'Inventory Custodian', source: 'Donated', recorded: '2026-09-25' },
+      { id: 5, name: 'Laser printer', description: 'Monochrome · network enabled', property: 'ICS-2022-033', tracking: 'TRK-ICT-033', serial: 'HP-LJ-8321', category: 'ICT Equipment', condition: 'Serviceable', qty: 3, unit: 'unit', value: 12400, acquired: '2022-11-11', person: 'Inventory Custodian', source: 'Purchased', recorded: '2026-09-21' },
+      { id: 6, name: 'Portable generator', description: 'Gasoline · 3.5 kVA', property: 'PPE-2021-010', tracking: 'TRK-EQ-010', serial: 'GEN-41007', category: 'Equipment', condition: 'Unserviceable', qty: 1, unit: 'unit', value: 26700, acquired: '2021-03-17', person: 'Inventory Custodian', source: 'Purchased', recorded: '2026-09-16' },
+      { id: 7, name: 'Event tent', description: 'Canopy · 3 m × 6 m', property: 'INV-2025-041', tracking: 'TRK-FUR-041', serial: '—', category: 'Furniture', condition: 'Serviceable', qty: 6, unit: 'pcs', value: 7200, acquired: '2025-05-03', person: 'Inventory Custodian', source: 'Donated', recorded: '2026-09-12' },
+      { id: 8, name: 'Filing cabinet', description: 'Four-drawer steel cabinet', property: 'PPE-2023-018', tracking: 'TRK-FUR-018', serial: '—', category: 'Furniture', condition: 'Serviceable', qty: 5, unit: 'unit', value: 8900, acquired: '2023-06-14', person: 'Inventory Custodian', source: 'Purchased', recorded: '2026-09-10' },
+      { id: 9, name: 'First aid kit', description: 'Portable community first aid kit', property: 'ICS-2025-012', tracking: 'TRK-HLTH-012', serial: '—', category: 'Health and Safety', condition: 'Serviceable', qty: 8, unit: 'kit', value: 1850, acquired: '2025-01-22', person: 'Inventory Custodian', source: 'Purchased', recorded: '2026-09-08' },
+      { id: 10, name: 'Fire extinguisher', description: 'ABC dry chemical · 5 lb', property: 'ICS-2024-009', tracking: 'TRK-SAFE-009', serial: 'FE-5209', category: 'Health and Safety', condition: 'Serviceable', qty: 6, unit: 'unit', value: 2450, acquired: '2024-07-10', person: 'Inventory Custodian', source: 'Purchased', recorded: '2026-09-06' },
+      { id: 11, name: 'Handheld megaphone', description: 'Rechargeable public address unit', property: 'ICS-2025-017', tracking: 'TRK-AV-017', serial: 'MG-7714', category: 'Audio-Visual', condition: 'Serviceable', qty: 4, unit: 'unit', value: 3200, acquired: '2025-03-19', person: 'Inventory Custodian', source: 'Donated', recorded: '2026-09-04' },
+      { id: 12, name: 'Basketball', description: 'Outdoor rubber basketball', property: 'INV-2025-052', tracking: 'TRK-REC-052', serial: '—', category: 'Sports and Recreation', condition: 'Serviceable', qty: 10, unit: 'pcs', value: 780, acquired: '2025-06-02', person: 'Inventory Custodian', source: 'Purchased', recorded: '2026-09-02' },
+      { id: 13, name: 'Water dispenser', description: 'Hot and cold countertop dispenser', property: 'PPE-2024-027', tracking: 'TRK-EQ-027', serial: 'WD-1027', category: 'Equipment', condition: 'Serviceable', qty: 2, unit: 'unit', value: 6400, acquired: '2024-09-12', person: 'Inventory Custodian', source: 'Purchased', recorded: '2026-08-30' },
+      { id: 14, name: 'Folding table', description: 'Plastic top · steel legs', property: 'INV-2024-063', tracking: 'TRK-FUR-063', serial: '—', category: 'Furniture', condition: 'Serviceable', qty: 12, unit: 'pcs', value: 2650, acquired: '2024-05-28', person: 'Inventory Custodian', source: 'Donated', recorded: '2026-08-28' },
+      { id: 15, name: 'Bond paper', description: 'A4 · 80 gsm · ream', property: 'SUP-2026-004', tracking: 'TRK-SUP-004', serial: '—', category: 'Office Supplies', condition: 'Serviceable', qty: 30, unit: 'ream', value: 265, acquired: '2026-08-15', person: 'Inventory Custodian', source: 'Purchased', recorded: '2026-08-26', consumable: true },
+      { id: 16, name: 'Emergency flashlight', description: 'Rechargeable LED flashlight', property: 'ICS-2025-021', tracking: 'TRK-SAFE-021', serial: 'FL-8821', category: 'Emergency Equipment', condition: 'Serviceable', qty: 12, unit: 'unit', value: 980, acquired: '2025-04-10', person: 'Inventory Custodian', source: 'Other', recorded: '2026-08-24' }
+    ];
+    items.forEach(function(item){item.coverage=item.coverage||'Barangay-wide';item.balance=item.balance==null?item.qty:item.balance;item.onHand=item.onHand==null?item.qty:item.onHand;item.shortage=item.shortage||0;item.shortageValue=item.shortageValue||0;item.remarks=item.remarks||item.condition;item.position=item.position||'Inventory Custodian';item.donor=item.donor||'';item.donorOffice=item.donorOffice||'';item.consumable=Boolean(item.consumable);});
+    let logEntries = [
+      { id: 1, itemId: 2, action: 'Borrowed', qty: 1, borrower: 'Alex Rivera', purpose: 'Community meeting', date: '2026-10-07', expectedReturn: '2026-10-12', returned: '', status: 'Still out', recorder: 'Administrator' },
+      { id: 2, itemId: 1, action: 'Borrowed', qty: 2, borrower: 'Jordan Cruz', purpose: 'Records encoding', date: '2026-10-06', expectedReturn: '2026-10-13', returned: '', status: 'Partially returned', recorder: 'Administrator' },
+      { id: 3, itemId: 3, action: 'Used', qty: 6, borrower: 'Morgan Santos', purpose: 'Community assembly', date: '2026-10-05', returned: '', status: 'Completed', recorder: 'Administrator' },
+      { id: 4, itemId: 1, action: 'Returned', qty: 1, borrower: 'Jordan Cruz', purpose: 'Partial return', date: '2026-10-07', returned: '2026-10-07', returnFor: 2, status: 'Return recorded', recorder: 'Administrator' },
+      { id: 5, itemId: 7, action: 'Borrowed', qty: 2, borrower: 'Casey Flores', purpose: 'Community clean-up', date: '2026-10-04', expectedReturn: '2026-10-11', returned: '', status: 'Still out', recorder: 'Treasurer' },
+      { id: 6, itemId: 11, action: 'Borrowed', qty: 1, borrower: 'Jamie Lopez', purpose: 'Public information drive', date: '2026-10-03', expectedReturn: '2026-10-12', returned: '', status: 'Still out', recorder: 'Committee on Inventory' },
+      { id: 7, itemId: 15, action: 'Used', qty: 5, borrower: 'Riley Garcia', purpose: 'Barangay records printing', date: '2026-10-02', returned: '', status: 'Completed', recorder: 'Treasurer' }
+    ];
+    let showAllLogEntries = false;
+    let reportHistory = [
+      { type: 'RIPE', period: 'Monthly · October 2026', date: '2026-10-08' },
+      { type: 'ICS', period: 'Monthly · September 2026', date: '2026-10-01' },
+      { type: 'PAR', period: 'Yearly · 2026', date: '2026-09-20' }
+    ];
+    let categories = Array.from(new Set(items.map(function(item){return item.category;})));
+    let users = [
+      {id:1,name:'Administrator',username:'admin',role:'admin',date:'2026-01-12'},
+      {id:2,name:'Treasurer',username:'treasurer',role:'treasurer',date:'2026-02-05'},
+      {id:3,name:'Committee Member',username:'committee',role:'committee',date:'2026-02-05'}
+    ];
+    let notifications = [
+      {id:1,itemId:2,action:'Borrowed',details:'1 unit borrowed for a community meeting.',date:'2026-10-07',read:false},
+      {id:2,itemId:1,action:'Borrowed',details:'2 units borrowed for records encoding.',date:'2026-10-06',read:false},
+      {id:3,itemId:3,action:'Used',details:'6 units used for a community assembly.',date:'2026-10-05',read:true},
+      {id:4,itemId:1,action:'Returned',details:'1 unit returned.',date:'2026-10-07',read:true}
+    ];
+    let auditEntries = [
+      {date:'2026-10-08',user:'Administrator',action:'login_success',entity:'Session',details:'Successful login.',ip:'192.168.1.24',group:'login'},
+      {date:'2026-10-07',user:'Treasurer',action:'logbook_created',entity:'Logbook',details:'Borrowed 1 multimedia projector.',ip:'192.168.1.28',group:'inventory'},
+      {date:'2026-10-06',user:'Administrator',action:'item_updated',entity:'Inventory item',details:'Updated laptop computer record.',ip:'192.168.1.31',group:'inventory'},
+      {date:'2026-10-05',user:'Administrator',action:'user_created',entity:'User account',details:'Added a committee account.',ip:'192.168.1.24',group:'users'},
+      {date:'2026-10-04',user:'Treasurer',action:'password_changed',entity:'Security',details:'Password changed.',ip:'192.168.1.28',group:'security'}
+    ];
+    const reportTypes = [
+      { code: 'RIS', name: 'Requisition and Issue Slip', color: 'ris' },
+      { code: 'PAR', name: 'Property Acknowledgment Receipt', color: 'par' },
+      { code: 'ICS', name: 'Inventory Custodian Slip', color: 'ics' },
+      { code: 'RIPE', name: 'Report on Inventory of Property and Equipment', color: 'ripe' }
+    ];
+    let currentRole = 'admin';
+    const $ = function (selector, root) { return (root || document).querySelector(selector); };
+    const $$ = function (selector, root) { return Array.from((root || document).querySelectorAll(selector)); };
+    const esc = function (value) { return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]; }); };
+    const currency = function (value) { return '₱' + Number(value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+    const dateLabel = function (value) { if (!value) return '—'; return new Date(value + 'T12:00:00').toLocaleDateString('en-PH', { month: 'short', day: '2-digit', year: 'numeric' }); };
+    const todayISO = function () { const now=new Date(); return now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0'); };
+    const getItem = function (id) { return items.find(function (item) { return item.id === Number(id); }); };
+    const badge = function (value, cls) { return '<span class="badge ' + cls + '">' + esc(value) + '</span>'; };
+    const conditionBadge = function (condition) { return badge(condition, condition === 'Serviceable' ? 'green' : 'red'); };
+    const actionBadge = function (action) { return badge(action, action === 'Borrowed' ? 'amber' : action === 'Returned' ? 'green' : 'blue'); };
+    const showToast = function (message) { $('#toastText').textContent = message; $('#toast').classList.add('show'); clearTimeout(showToast.timer); showToast.timer = setTimeout(function () { $('#toast').classList.remove('show'); }, 2800); };
+    const addGlyphs = function (root) { (root || document).querySelectorAll('[data-icon]').forEach(function (el) { el.innerHTML = icons[el.dataset.icon] || ''; }); };
+    const outstandingFor = function (id) {
+      return logEntries.filter(function (entry) { return entry.itemId === Number(id) && entry.action === 'Borrowed'; }).reduce(function (sum, entry) {
+        const returned = logEntries.filter(function (r) { return r.action === 'Returned' && r.itemId === entry.itemId && (r.returnFor ? r.returnFor === entry.id : r.borrower === entry.borrower && r.date >= entry.date); }).reduce(function (n, r) { return n + Number(r.qty); }, 0);
+        return sum + Math.max(0, Number(entry.qty) - returned);
+      }, 0);
+    };
+    const outstandingForEntry = function (entryId) {
+      const entry = logEntries.find(function (record) { return record.id === Number(entryId) && record.action === 'Borrowed'; });
+      if (!entry) return 0;
+      const returned = logEntries.filter(function (record) { return record.action === 'Returned' && record.itemId === entry.itemId && (record.returnFor ? record.returnFor === entry.id : record.borrower === entry.borrower && record.date >= entry.date); }).reduce(function (sum, record) { return sum + Number(record.qty); }, 0);
+      return Math.max(0, Number(entry.qty) - returned);
+    };
+    const availableFor = function (id) {
+      const item = getItem(id);
+      if (!item) return 0;
+      const used = logEntries.filter(function (entry) { return entry.itemId === Number(id) && entry.action === 'Used'; }).reduce(function (sum, entry) { return sum + Number(entry.qty); }, 0);
+      return Math.max(0, Number(item.qty) - outstandingFor(id) - used);
+    };
+    const statusFor = function (entry) {
+      if (entry.action === 'Returned') return 'Return recorded';
+      if (entry.action === 'Used') return 'Completed';
+      const outstanding = outstandingForEntry(entry.id);
+      return outstanding === 0 ? 'Fully returned' : outstanding < Number(entry.qty) ? 'Partially returned' : 'Still out';
+    };
+    function roleName(role) {
+      return ({admin:'Administrator',treasurer:'Treasurer',committee:'Committee on Inventory'})[role] || 'Administrator';
+    }
+    function canManage(role) { return role === 'admin'; }
+    function canEditRecords(role) { return ['admin','treasurer'].includes(role); }
+    function canOversight(role) { return ['admin','treasurer'].includes(role); }
+    function renderRoleNav() {
+      const name = roleName(currentRole);
+      const admin = canManage(currentRole);
+      $('#currentUserName').textContent = name;
+      $('.avatar').textContent = currentRole === 'admin' ? 'AD' : currentRole === 'treasurer' ? 'TR' : 'CI';
+      $('#welcomeGreeting').textContent = 'Good morning, ' + name;
+      const copy = {
+        admin: 'Review inventory, system activity, accounts, and report settings.',
+        treasurer: 'Review stock accountability and outstanding borrowed items.',
+        committee: 'Review inventory condition and records that need attention.'
+      };
+      $('.welcome-copy').textContent = copy[currentRole];
+      let groups = '';
+      if (admin) {
+        groups += '<div class="nav-caption">Administration</div><button class="nav-link" data-page="categories"><span data-icon="clipboard"></span>Categories</button><button class="nav-link" data-page="users"><span data-icon="user"></span>Users</button><button class="nav-link" data-page="settings"><span data-icon="report"></span>Report Settings</button>';
+      }
+      if (canOversight(currentRole)) {
+        groups += '<div class="nav-caption">Oversight</div><button class="nav-link" data-page="notifications"><span data-icon="info"></span>Notifications</button><button class="nav-link" data-page="audit"><span data-icon="history"></span>Activity Log</button>';
+      }
+      groups += '<div class="nav-caption">Account</div><button class="nav-link" data-page="profile"><span data-icon="user"></span>My Profile</button><button class="nav-link" data-page="password"><span data-icon="report"></span>Change Password</button>';
+      $('#roleNav').innerHTML = groups;
+      addGlyphs($('#roleNav'));
+    }
+    function renderCategoryPage() {
+      const groups = {};
+      items.forEach(function(item){ if(!groups[item.category]) groups[item.category] = []; groups[item.category].push(item); });
+      const names = categories.slice().sort(function(a,b){
+        const order=$('#categoryDirection').value==='DESC'?-1:1;
+        if($('#categorySort').value==='items'){
+          const count=function(name){return items.filter(function(i){return i.category===name;}).length;};
+          return (count(a)-count(b))*order;
+        }
+        return a.localeCompare(b)*order;
+      });
+      $('#categoryCount').textContent = names.length + ' categories';
+      $('#categoryRows').innerHTML = names.map(function(name){ const first=groups[name] && groups[name][0]; return '<tr><td><div class="item-main">' + esc(name) + '</div></td><td>' + (groups[name] ? groups[name].length : 0) + '</td><td>' + (groups[name] ? Math.round(groups[name].length/items.length*100) : 0) + '%</td><td>' + (first ? esc(first.name) : '—') + '</td><td><button class="btn btn-secondary btn-small" data-action="delete-category" data-category="' + esc(name) + '">Delete</button></td></tr>'; }).join('');
+    }
+    function renderUsers() {
+      $('#userCount').textContent = users.length + ' accounts';
+      $('#userRows').innerHTML = users.map(function(user){
+        const role = roleName(user.role);
+        const actions = '<button class="btn btn-secondary btn-small" data-action="edit-user" data-user="' + user.id + '">Edit</button> <button class="btn btn-secondary btn-small" data-action="reset-user" data-user="' + user.id + '">Reset</button>' + (user.username !== 'admin' ? ' <button class="btn btn-secondary btn-small" data-action="delete-user" data-user="' + user.id + '">Delete</button>' : '');
+        return '<tr><td><div class="item-main">' + esc(user.name) + '</div></td><td class="code">' + esc(user.username) + '</td><td>' + esc(role) + '</td><td>' + dateLabel(user.date) + '</td><td>' + actions + '</td></tr>';
+      }).join('');
+    }
+    function renderNotifications() {
+      const unread = notifications.filter(function(n){return !n.read;}).length;
+      const countType = function(type){return notifications.filter(function(n){return n.action===type;}).length;};
+      $('#notificationMetrics').innerHTML = historyMetric('All notifications',notifications.length,'info','#1769aa') + historyMetric('Unread',unread,'alert','#b96d04') + historyMetric('Borrowed alerts',countType('Borrowed'),'box','#bf3d47');
+      const filter=$('#notificationFilter').value, sort=$('#notificationSort').value;
+      let rows=notifications.filter(function(n){return (!filter || (filter==='unread' ? !n.read : n.action===filter));});
+      rows.sort(function(a,b){return sort==='oldest'?a.date.localeCompare(b.date):sort==='type'?a.action.localeCompare(b.action):sort==='read'?Number(a.read)-Number(b.read):b.date.localeCompare(a.date);});
+      $('#notificationCount').textContent=rows.length+' notices';
+      $('#notificationRows').innerHTML=rows.length?rows.map(function(n){const item=getItem(n.itemId);return '<tr><td>'+actionBadge(n.action)+'</td><td>'+esc(item?item.name:'Inventory item')+'</td><td>'+esc(n.details)+'</td><td>'+dateLabel(n.date)+'</td><td>'+badge(n.read?'Read':'Unread',n.read?'gray':'amber')+'</td><td>'+(!n.read?'<button class="btn btn-secondary btn-small" data-action="mark-read" data-notification="'+n.id+'">Mark read</button>':'')+'</td></tr>';}).join(''):'<tr><td colspan="6"><div class="empty">No notifications match this filter.</div></td></tr>';
+    }
+    function renderActivity() {
+      const filter=$('#auditFilter').value,sort=$('#auditSort').value,direction=$('#auditDirection').value==='ASC'?1:-1;
+      const rows=auditEntries.filter(function(e){return filter==='all'||e.group===filter;}).slice().sort(function(a,b){const left=sort==='user'?a.user:sort==='action'?a.action:sort==='entity'?a.entity:a.date;const right=sort==='user'?b.user:sort==='action'?b.action:sort==='entity'?b.entity:b.date;return String(left).localeCompare(String(right))*direction;}).map(function(e){return '<tr><td>'+dateLabel(e.date)+'</td><td>'+esc(e.user)+'</td><td>'+esc(e.action)+'</td><td>'+esc(e.entity)+'</td><td>'+esc(e.details)+'</td><td class="code">'+esc(e.ip)+'</td></tr>';});
+      $('#activityCount').textContent = rows.length + ' entries';
+      $('#activityRows').innerHTML = rows.join('') || '<tr><td colspan="6"><div class="empty">No recent activity.</div></td></tr>';
+    }
+    function renderStats() {
+      const serviceable = items.filter(function (i) { return i.condition === 'Serviceable'; }).length;
+      const unserviceable = items.length - serviceable;
+      const logCount = logEntries.length;
+      const borrowed = items.reduce(function (sum, item) { return sum + outstandingFor(item.id); }, 0);
+      $('#dashboardStats').innerHTML =
+        stat('Total items', items.length, 'Across all categories', 'box', '#1769aa', '#e9f2fb') +
+        stat('Serviceable', serviceable, 'Ready for use', 'check', '#18865b', '#e7f6ee') +
+        stat('Unserviceable', unserviceable, 'Marked for attention', 'alert', '#bf3d47', '#fff0f0') +
+        stat('Logbook entries', logCount, borrowed + ' unit(s) still out', 'book', '#b96d04', '#fff4dc');
+      $('#outstandingQty').textContent = borrowed;
+      $('#navItemCount').textContent = items.length;
+      $('#navLogCount').textContent = logCount;
+      $('#recentItems').innerHTML = items.slice().sort(function (a,b) { return b.recorded.localeCompare(a.recorded); }).slice(0,4).map(function (item) {
+        return '<tr><td><div class="item-main">' + esc(item.name) + '</div><div class="item-sub">' + esc(item.description) + '</div></td><td class="code">' + esc(item.property) + '</td><td>' + conditionBadge(item.condition) + '</td><td>' + dateLabel(item.recorded) + '</td></tr>';
+      }).join('');
+    }
+    function stat(label, value, foot, glyph, color, bg) {
+      return '<div class="stat" style="--stat-color:' + color + ';--stat-bg:' + bg + '"><span class="stat-icon" data-icon="' + glyph + '"></span><div><div class="stat-label">' + label + '</div><div class="stat-value">' + value + '</div><div class="stat-foot">' + foot + '</div></div></div>';
+    }
+    function renderInventory() {
+      const cats = categories.slice().sort();
+      const selectedCategory = $('#categoryFilter').value;
+      $('#categoryFilter').innerHTML = '<option value="">All categories</option>' + cats.map(function (c) { return '<option>' + esc(c) + '</option>'; }).join('');
+      $('#categoryFilter').value = cats.includes(selectedCategory) ? selectedCategory : '';
+      const search = $('#inventorySearch').value.trim().toLowerCase();
+      const condition = $('#conditionFilter').value;
+      const acquisition = $('#acquisitionFilter').value;
+      const filtered = items.filter(function (item) {
+        const haystack = [item.name,item.description,item.property,item.tracking,item.serial,item.category].join(' ').toLowerCase();
+        return (!search || haystack.includes(search)) && (!condition || item.condition === condition) && (!acquisition || item.source === acquisition) && (!$('#categoryFilter').value || item.category === $('#categoryFilter').value);
+      });
+      const sortField=$('#inventorySort').value, sortDirection=$('#inventoryDirection').value==='DESC'?-1:1;
+      filtered.sort(function(a,b){const left=sortField==='name'?a.name:sortField==='tracking'?a.tracking:sortField==='category'?a.category:sortField==='condition'?a.condition:sortField==='quantity'?a.qty:a.acquired;const right=sortField==='name'?b.name:sortField==='tracking'?b.tracking:sortField==='category'?b.category:sortField==='condition'?b.condition:sortField==='quantity'?b.qty:b.acquired;return (typeof left==='number'?left-right:String(left).localeCompare(String(right)))*sortDirection;});
+      const purchased = items.filter(function (i) { return i.source === 'Purchased'; }).length;
+      const donated = items.filter(function (i) { return i.source === 'Donated'; }).length;
+      const other = items.length - purchased - donated;
+      $('#inventorySummary').innerHTML = miniStat('Total items', items.length, 'box', '#1769aa') + miniStat('Purchased', purchased, 'clipboard', '#7355bc') + miniStat('Donated', donated, 'check', '#18865b') + miniStat('Other', other, 'report', '#b96d04');
+      $('#inventoryResultCount').textContent = filtered.length;
+      $('#physicalCountButton').hidden = !canEditRecords(currentRole);
+      $('#inventoryRows').innerHTML = filtered.length ? filtered.map(function (item) {
+        const actions = '<button class="btn btn-secondary btn-small" data-item="' + item.id + '">View</button>' + (canEditRecords(currentRole) ? ' <button class="btn btn-secondary btn-small" data-edit-item="' + item.id + '">Edit</button>' : '') + (canManage(currentRole) ? ' <button class="btn btn-secondary btn-small" data-delete-item="' + item.id + '">Delete</button>' : '');
+        const available = availableFor(item.id);
+        return '<tr><td class="code">' + esc(item.tracking) + '</td><td>' + esc(item.category) + '</td><td><div class="item-main">' + esc(item.name) + '</div><div class="item-sub">' + esc(item.description) + '</div></td><td class="code">' + esc(item.property) + '</td><td>' + dateLabel(item.acquired) + '</td><td>' + esc(item.unit) + '</td><td>' + currency(item.value) + '</td><td>' + Number(item.balance != null ? item.balance : item.qty) + '</td><td>' + Number(item.onHand != null ? item.onHand : item.qty) + '</td><td><strong>' + available + '</strong></td><td>' + Number(item.shortage || 0) + '</td><td>' + currency(item.shortageValue || 0) + '</td><td>' + esc(item.remarks || item.condition) + '</td><td>' + conditionBadge(item.condition) + '</td><td style="white-space:nowrap">' + actions + '</td></tr>';
+      }).join('') : '<tr><td colspan="15"><div class="empty">No items match these filters.</div></td></tr>';
+    }
+    function miniStat(label, value, glyph, color) {
+      return '<div class="mini-stat"><div class="mini-stat-label">' + label + '</div><div class="mini-stat-number" style="color:' + color + '">' + value + '</div></div>';
+    }
+    function renderHistory() {
+      const period = $('#historyPeriod').value;
+      const month = $('#historyMonth').value;
+      const now = new Date('2026-10-08T12:00:00');
+      let records = items.slice();
+      let periodLabel = 'All records';
+      if (period === 'weekly') {
+        const cutoff = new Date(now); cutoff.setDate(cutoff.getDate() - 7);
+        records = records.filter(function (i) { return new Date(i.recorded + 'T12:00:00') >= cutoff; });
+        periodLabel = 'Records added in the last 7 days';
+      } else if (period === 'monthly') {
+        records = records.filter(function (i) { return i.recorded.slice(0,7) === month; });
+        periodLabel = 'Records for ' + (month ? new Date(month + '-01T12:00:00').toLocaleDateString('en-PH', { month: 'long', year: 'numeric' }) : 'selected month');
+      } else if (period === 'yearly') {
+        const year = month ? month.slice(0,4) : '2026';
+        records = records.filter(function (i) { return i.recorded.startsWith(year); });
+        periodLabel = 'Records for ' + year;
+      }
+      const serv = records.filter(function (i) { return i.condition === 'Serviceable'; }).length;
+      const unserv = records.length - serv;
+      $('#historyMetrics').innerHTML = historyMetric('Total items', records.length, 'box', '#1769aa') + historyMetric('Serviceable', serv, 'check', '#18865b') + historyMetric('Unserviceable', unserv, 'alert', '#bf3d47');
+      $('#historyPeriodLabel').textContent = periodLabel;
+      $('#historyCount').textContent = records.length + ' records';
+      const historySort=$('#historySort').value, historyDirection=$('#historyDirection').value==='DESC'?-1:1;
+      $('#historyRows').innerHTML = records.length ? records.slice().sort(function(a,b){const left=historySort==='name'?a.name:historySort==='category'?a.category:historySort==='condition'?a.condition:historySort==='quantity'?a.qty:historySort==='acquired'?a.acquired:a.recorded;const right=historySort==='name'?b.name:historySort==='category'?b.category:historySort==='condition'?b.condition:historySort==='quantity'?b.qty:historySort==='acquired'?b.acquired:b.recorded;return (typeof left==='number'?left-right:String(left).localeCompare(String(right)))*historyDirection; }).map(function (item) {
+        return '<tr><td class="code">' + esc(item.property) + '</td><td><div class="item-main">' + esc(item.name) + '</div></td><td>' + esc(item.category) + '</td><td>' + conditionBadge(item.condition) + '</td><td>' + item.qty + '</td><td>' + dateLabel(item.acquired) + '</td><td>' + esc(item.person) + '</td><td>' + dateLabel(item.recorded) + '</td></tr>';
+      }).join('') : '<tr><td colspan="8"><div class="empty">No inventory records in this period.</div></td></tr>';
+    }
+    function historyMetric(label, value, glyph, color) {
+      return '<div class="history-metric"><span class="stat-icon" style="--stat-color:' + color + '"><span data-icon="' + glyph + '"></span></span><span><b>' + value + '</b><small>' + label + '</small></span></div>';
+    }
+    function renderLogbook() {
+      const term = $('#logSearch').value.trim().toLowerCase(), from=$('#logFrom').value, to=$('#logTo').value, sort=$('#logSort').value, direction=$('#logDirection').value==='ASC'?1:-1;
+      const action = $('#actionFilter').value;
+      const records = logEntries.filter(function (entry) {
+        const item = getItem(entry.itemId);
+        return (!action || entry.action === action) && (!term || [item && item.name,item && item.tracking,entry.borrower,entry.purpose,entry.action].join(' ').toLowerCase().includes(term)) && (!from||entry.date>=from) && (!to||entry.date<=to);
+      }).slice().sort(function (a,b) {const itemA=getItem(a.itemId),itemB=getItem(b.itemId);const left=sort==='item'?(itemA?itemA.name:''):sort==='borrower'?a.borrower:sort==='action'?a.action:sort==='quantity'?a.qty:a.date;const right=sort==='item'?(itemB?itemB.name:''):sort==='borrower'?b.borrower:sort==='action'?b.action:sort==='quantity'?b.qty:b.date;return (typeof left==='number'?left-right:String(left).localeCompare(String(right)))*direction;});
+      const shownRecords=showAllLogEntries?records:records.slice(0,10);
+      $('#logCount').textContent = records.length + ' entries';
+      $('#logLimitNote').textContent=records.length>10?(showAllLogEntries?'Showing all '+records.length+' matching entries':'Showing 10 of '+records.length+' matching entries'):'Showing '+records.length+' entries';
+      $('#logExpandButton').hidden=records.length<=10;
+      $('#logExpandButton').textContent=showAllLogEntries?'Show 10':'Show all';
+      $('#logRows').innerHTML = records.length ? shownRecords.map(function (entry) {
+        const item = getItem(entry.itemId) || {name:'Deleted item',tracking:'N/A'};
+        const status = statusFor(entry);
+        const cls = status === 'Still out' ? 'red' : status === 'Partially returned' ? 'amber' : status === 'Completed' ? 'gray' : 'green';
+        const returnDate=entry.action==='Borrowed'?(entry.expectedReturn?dateLabel(entry.expectedReturn):'<span style="color:#ae7616">Not set</span>'):(entry.returned?dateLabel(entry.returned):'—');
+        return '<tr><td><div class="item-main">' + esc(item.name) + '</div></td><td class="code">' + esc(item.tracking) + '</td><td>' + actionBadge(entry.action) + '</td><td>' + entry.qty + '</td><td>' + esc(entry.action==='Returned'?(entry.returnedBy||'—'):(entry.borrower||'—')) + '</td><td>' + esc(entry.purpose || '—') + '</td><td>' + dateLabel(entry.date) + '</td><td>' + returnDate + '</td><td>' + (entry.condition ? conditionBadge(entry.condition) : '—') + '</td><td>' + badge(status,cls) + '</td><td>' + esc(entry.recorder) + '</td></tr>';
+      }).join('') : '<tr><td colspan="11"><div class="empty">No logbook entries match these filters.</div></td></tr>';
+      const outstanding = logEntries.filter(function (entry) { return entry.action === 'Borrowed' && outstandingForEntry(entry.id) > 0; });
+      $('#outstandingRows').innerHTML = outstanding.length ? outstanding.map(function(entry){ const item=getItem(entry.itemId), remaining=outstandingForEntry(entry.id); return '<tr><td><div class="item-main">'+esc(item?item.name:'Deleted item')+'</div></td><td>'+esc(entry.borrower)+'</td><td>'+esc(entry.purpose||'—')+'</td><td>'+dateLabel(entry.date)+'</td><td>'+dateLabel(entry.expectedReturn)+'</td><td>'+badge(remaining+' '+(item?item.unit:'unit')+' still out','amber')+'</td><td><button class="btn btn-primary btn-small" data-action="return-entry" data-entry-id="'+entry.id+'">Return</button></td></tr>'; }).join('') : '<tr><td colspan="7"><div class="empty">No items are currently borrowed.</div></td></tr>';
+    }
+    function renderReports() {
+      $('#reportCards').innerHTML = reportTypes.map(function (type) {
+        return '<article class="report-card type-' + type.color + '"><span class="report-icon" data-icon="' + (type.code === 'RIS' ? 'report' : type.code === 'PAR' ? 'user' : type.code === 'ICS' ? 'clipboard' : 'history') + '"></span><div class="report-code">' + type.code + '</div><div class="report-name">' + type.name + '</div><button class="btn btn-secondary btn-small" data-report="' + type.code + '">Generate ' + type.code + '</button></article>';
+      }).join('');
+      const typeFilter=$('#reportTypeFilter').value, sort=$('#reportSort').value, direction=$('#reportDirection').value==='ASC'?1:-1;
+      const records=reportHistory.filter(function(r){return !typeFilter||r.type===typeFilter;}).slice().sort(function(a,b){const left=sort==='type'?a.type:sort==='period'?a.period:sort==='user'?(a.generatedBy||roleName(currentRole)):a.date;const right=sort==='type'?b.type:sort==='period'?b.period:sort==='user'?(b.generatedBy||roleName(currentRole)):b.date;return String(left).localeCompare(String(right))*direction;});
+      $('#reportCount').textContent = records.length + ' of ' + reportHistory.length + ' reports';
+      $('#reportRows').innerHTML = records.length ? records.map(function (r) { return '<tr><td>' + badge(r.type, r.type === 'PAR' ? 'red' : r.type === 'RIPE' ? 'amber' : 'blue') + '</td><td>' + esc(r.period) + '</td><td>' + esc(r.generatedBy||roleName(currentRole)) + '</td><td>' + dateLabel(r.date) + '</td></tr>'; }).join('') : '<tr><td colspan="4"><div class="empty">No reports match this filter.</div></td></tr>';
+    }
+    function renderAll() { renderRoleNav(); renderStats(); renderInventory(); renderHistory(); renderLogbook(); renderReports(); renderCategoryPage(); renderUsers(); renderActivity(); renderNotifications(); addGlyphs(); }
+    function go(page) {
+      $$('.view').forEach(function (view) { view.classList.toggle('active', view.id === 'view-' + page); });
+      $$('.nav-link[data-page]').forEach(function (link) { link.classList.toggle('active', link.dataset.page === page); });
+      document.title = 'StockTrack — ' + page.charAt(0).toUpperCase() + page.slice(1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    function openModal(title, subtitle, body, actions, wide) {
+      const modal = $('#modal');
+      modal.innerHTML = '<div class="modal' + (wide ? ' wide' : '') + '"><div class="modal-head"><div><h2 id="modalTitle">' + title + '</h2><p>' + subtitle + '</p></div><button class="close-btn" data-action="close-modal" aria-label="Close">×</button></div><div class="modal-body">' + body + '</div>' + (actions ? '<div class="modal-actions">' + actions + '</div>' : '') + '</div>';
+      modal.classList.add('open'); addGlyphs(modal);
+    }
+    function closeModal() { $('#modal').classList.remove('open'); $('#modal').innerHTML = ''; }
+    function showItem(id) {
+      const item = getItem(id); if (!item) return;
+      const body = '<div class="detail-grid">' +
+        detailCell('Item name',item.name) + detailCell('Category',item.category) +
+        detailCell('Property / ICS no.',item.property) + detailCell('Tracking no.',item.tracking) +
+        detailCell('Serial no.',item.serial) + detailCell('Condition',item.condition) +
+        detailCell('Coverage type',item.coverage) + detailCell('Acquisition type',item.source) +
+        detailCell('Date acquired',dateLabel(item.acquired)) + detailCell('Donor / organization',item.donor||'—') +
+        detailCell('Unit of measure',item.unit) + detailCell('Unit value',currency(item.value)) +
+        detailCell('Balance per card',item.balance!=null?item.balance:item.qty) + detailCell('On hand',item.onHand!=null?item.onHand:item.qty) +
+        detailCell('Shortage / overage',item.shortage||0) + detailCell('Shortage / overage value',currency(item.shortageValue||0)) +
+        detailCell('Person in charge',item.person) + detailCell('Position',item.position||'—') +
+        detailCell('Last inventory',dateLabel(item.lastInventory)) + detailCell('Remarks',item.remarks||'—') +
+        '</div><div class="card" style="margin-top:14px;box-shadow:none"><div class="card-head"><h3 class="card-title">Current logbook activity</h3></div><div class="table-wrap"><table><thead><tr><th>Action</th><th>Qty</th><th>Person</th><th>Date</th><th>Status</th></tr></thead><tbody>' +
+        (logEntries.filter(function (e) { return e.itemId === item.id; }).map(function (e) { const status = statusFor(e); const cls = status === 'Still out' ? 'red' : status === 'Partially returned' ? 'amber' : status === 'Completed' ? 'gray' : 'green'; return '<tr><td>' + actionBadge(e.action) + '</td><td>' + e.qty + '</td><td>' + esc(e.action==='Returned'?(e.returnedBy||'—'):(e.borrower||'—')) + '</td><td>' + dateLabel(e.date) + '</td><td>' + badge(status,cls) + '</td></tr>'; }).join('') || '<tr><td colspan="5" class="empty">No logbook activity for this item.</td></tr>') +
+        '</tbody></table></div></div>';
+      openModal(esc(item.name),'Inventory record',body,'<button class="btn btn-secondary" data-action="close-modal">Close</button><button class="btn btn-primary" data-page="logbook" data-close-modal="true">Open Logbook</button>',true);
+    }
+    function detailCell(label,value) { return '<div class="detail-cell"><small>' + esc(label) + '</small><strong>' + esc(value) + '</strong></div>'; }
+    function itemForm() {
+      const catOptions = categories.map(function(c){return '<option>'+esc(c)+'</option>';}).join('');
+      const body = '<form id="itemForm" class="form-grid"><input type="hidden" name="id" value=""><div class="form-row"><label for="newProperty">Property / ICS no.</label><input class="field" id="newProperty" name="property" placeholder="e.g., 1-07-05-030"></div><div class="form-row"><label for="newItemName">Description / item name</label><input class="field" id="newItemName" name="name" required placeholder="e.g., Office chair"></div><div class="form-row"><label>Coverage type</label><select class="field" name="coverage"><option>Barangay-wide</option><option>Office-specific</option></select></div><div class="form-row"><label>Acquisition type</label><select class="field" name="source"><option>Purchased</option><option>Donated</option><option>Other</option></select></div><div class="form-row"><label>Date acquired</label><input class="field" name="acquired" type="date" value="2026-10-08" required></div><div class="form-row"><label>Donor name / organization</label><input class="field" name="donor" placeholder="If donated"></div><div class="form-row"><label>Donor office / department</label><input class="field" name="donorOffice"></div><div class="form-row"><label>Unit of measure</label><input class="field" name="unit" value="unit" required></div><div class="form-row"><label>Unit value</label><input class="field" name="value" type="number" min="0" step="0.01" value="0"></div><div class="form-row"><label>Balance per card</label><input class="field" name="balance" type="number" min="0" value="1"></div><div class="form-row"><label>On hand</label><input class="field" name="onHand" type="number" min="0" value="1" required></div><div class="form-row"><label>Shortage / overage quantity</label><input class="field" name="shortage" type="number" value="0"></div><div class="form-row"><label>Shortage / overage value</label><input class="field" name="shortageValue" type="number" step="0.01" value="0"></div><div class="form-row"><label>Serial no.</label><input class="field" name="serial"></div><div class="form-row"><label>Article / category</label><select class="field" name="category">'+catOptions+'</select></div><div class="form-row"><label>Condition</label><select class="field" name="condition"><option>Serviceable</option><option>Unserviceable</option></select></div><div class="form-row"><label>Usage</label><select class="field" name="consumable"><option value="false">Non-consumable</option><option value="true">Consumable</option></select></div><div class="form-row"><label>Person in charge</label><input class="field" name="person" value="Inventory Custodian"></div><div class="form-row"><label>Position</label><input class="field" name="position" value="Inventory Custodian"></div><div class="form-row"><label>Last inventory</label><input class="field" name="lastInventory" type="date"></div><div class="form-row full"><label>Remarks</label><input class="field" name="remarks"></div></form>';
+      openModal('Add inventory item','Enter the item details below.',body,'<button class="btn btn-secondary" data-action="close-modal">Cancel</button><button class="btn btn-primary" type="submit" form="itemForm">Add Item</button>',true);
+    }
+    function editItemForm(id) {
+      const item=getItem(id); if(!item)return;
+      itemForm();
+      const form=$('#itemForm');
+      form.elements.id.value=item.id;
+      ['name','property','category','condition','qty','value','description','source','acquired','serial','unit','person','position','donor','donorOffice','coverage','balance','onHand','shortage','shortageValue','remarks'].forEach(function(key){if(form.elements[key])form.elements[key].value=item[key==='name'?'name':key==='description'?'description':key]||'';});
+      if(form.elements.consumable)form.elements.consumable.value=String(Boolean(item.consumable));
+      openModal('Edit inventory item','Update the item record.',form.outerHTML,'<button class="btn btn-secondary" data-action="close-modal">Cancel</button><button class="btn btn-primary" type="submit" form="itemForm">Save Changes</button>',true);
+    }
+    function physicalCountForm() {
+      const options=items.map(function(i){return '<option value="'+i.id+'">'+esc(i.name)+' · '+esc(i.property)+'</option>';}).join('');
+      const body='<form id="countForm" class="form-grid"><div class="form-row full"><label for="countItem">Inventory item</label><select class="field" name="itemId" id="countItem">'+options+'</select></div><div class="form-row"><label for="countCondition">Condition</label><select class="field" name="condition" id="countCondition"><option>Serviceable</option><option>Unserviceable</option></select></div><div class="form-row"><label for="countOnHand">On-hand count</label><input class="field" name="onHand" id="countOnHand" type="number" min="0" value="1" required></div></form>';
+      openModal('Physical Count','Record the observed condition and on-hand quantity.',body,'<button class="btn btn-secondary" data-action="close-modal">Cancel</button><button class="btn btn-primary" type="submit" form="countForm">Save Count</button>');
+    }
+    function categoryForm() {
+      const body='<form id="categoryForm" class="form-grid"><div class="form-row full"><label for="categoryName">Category name</label><input class="field" id="categoryName" name="name" required placeholder="e.g., Office Supplies"></div></form>';
+      openModal('Add category','Create an inventory category.',body,'<button class="btn btn-secondary" data-action="close-modal">Cancel</button><button class="btn btn-primary" type="submit" form="categoryForm">Add Category</button>');
+    }
+    function userForm(id) {
+      const user=id?users.find(function(u){return u.id===Number(id);}):null;
+      const choices=[['admin','Administrator'],['treasurer','Treasurer'],['committee','Committee on Inventory']];
+      const roles=choices.map(function(option){return '<option value="'+option[0]+'" '+(user&&user.role===option[0]?'selected':'')+'>'+option[1]+'</option>';}).join('');
+      const body='<form id="userForm" class="form-grid"><input type="hidden" name="id" value="'+(user?user.id:'')+'"><div class="form-row"><label>Full name</label><input class="field" name="name" value="'+esc(user?user.name:'')+'" required></div><div class="form-row"><label>Username</label><input class="field" name="username" value="'+esc(user?user.username:'')+'" required></div><div class="form-row"><label>Role</label><select class="field" name="role">'+roles+'</select></div>'+(!user?'<div class="form-row"><label>Temporary password</label><input class="field" name="password" type="password" required minlength="6"></div>':'')+'</form>';
+      openModal(user?'Edit User Account':'Add User',user?'Update account details and access role.':'Create a StockTrack account.',body,'<button class="btn btn-secondary" data-action="close-modal">Cancel</button><button class="btn btn-primary" type="submit" form="userForm">'+(user?'Save Account':'Add User')+'</button>');
+    }
+    function editItemById(id) { editItemForm(id); }
+    function deleteItemById(id) {
+      const item=getItem(id); if(!item)return;
+      if(outstandingFor(item.id)>0){showToast('This item has an outstanding borrowed quantity.');return;}
+      openModal('Delete inventory item','This removes the item from the current view.', '<p>Delete <strong>'+esc(item.name)+'</strong> from the inventory list?</p>', '<button class="btn btn-secondary" data-action="close-modal">Cancel</button><button class="btn btn-primary" data-action="confirm-delete-item" data-item-id="'+item.id+'">Delete Item</button>');
+    }
+    function logForm(initialAction, selectedEntryId) {
+      const action=initialAction||'Borrowed';
+      const actionOptions=action==='Returned'?'<option selected>Returned</option>':'<option '+(action==='Borrowed'?'selected':'')+'>Borrowed</option><option '+(action==='Used'?'selected':'')+'>Used</option>';
+      const returnEntry=selectedEntryId?logEntries.find(function(entry){return entry.id===Number(selectedEntryId)&&entry.action==='Borrowed';}):null;
+      const returnItem=returnEntry?getItem(returnEntry.itemId):null;
+      const returnSummary=returnEntry&&returnItem?'<strong>'+esc(returnItem.name)+'</strong><div>'+esc(returnItem.tracking)+' · Borrowed by '+esc(returnEntry.borrower)+' · '+outstandingForEntry(returnEntry.id)+' '+esc(returnItem.unit)+' still out</div><div>Expected return: '+dateLabel(returnEntry.expectedReturn)+'</div>':'Choose Return from an outstanding item to identify the item being returned.';
+      const body = '<form id="logForm" class="form-grid"><div class="form-row full"><label for="logAction">Action</label><select class="field" id="logAction" name="action">'+actionOptions+'</select></div><input type="hidden" id="logItem" name="itemId"><div class="form-row full" id="logItemPanel"><label for="logItemSearch">Search item</label><input class="field" id="logItemSearch" type="search" autocomplete="off" placeholder="Type an item name, tracking number, or category"><div id="logItemResults" style="display:grid;gap:6px;margin-top:8px"></div><small id="logSelectedItem" style="display:block;margin-top:7px;color:#52657a"></small></div><div class="form-row full" id="stockAvailability" style="padding:12px 14px;border:1px solid #d9e3ed;border-radius:9px;background:#f5f8fb"></div><div class="form-row" id="logQtyPanel"><label for="logQty" id="logQtyLabel">Quantity</label><input class="field" id="logQty" name="qty" type="number" value="1" min="1" required></div><div class="form-row" id="logPersonPanel"><label for="logPerson" id="logPersonLabel">Borrowed by</label><input class="field" id="logPerson" name="borrower" value="Taylor Reed" required></div><div class="form-row full" style="padding:10px 12px;border-radius:8px;background:#f5f8fb;color:#52657a">Transaction date is recorded automatically when you save this entry.</div><div class="form-row" id="expectedReturnPanel"><label for="expectedReturn">Expected return date</label><input class="field" id="expectedReturn" name="expectedReturn" type="date"></div><div class="form-row full" id="logPurposePanel"><label for="logPurpose">Purpose</label><input class="field" id="logPurpose" name="purpose" placeholder="e.g., Community activity"></div><input type="hidden" id="returnFor" name="returnFor" value="'+(selectedEntryId||'')+'"><div class="form-row full" id="returnPanel" hidden><div style="padding:12px 14px;border:1px solid #d9e3ed;border-radius:9px;background:#f5f8fb"><small style="display:block;color:#52657a;margin-bottom:5px">Item being returned</small><div id="returnItemInfo">'+returnSummary+'</div></div></div><div class="form-row" id="returnPersonPanel" hidden><label for="returnedBy">Returned by</label><input class="field" id="returnedBy" name="returnedBy" placeholder="Enter the name of the person returning it"></div><div class="form-row full" id="returnConditionPanel" hidden><label for="returnCondition">Condition of returned item</label><select class="field" id="returnCondition" name="condition"><option>Serviceable</option><option>Unserviceable</option></select></div></form>';
+      openModal(action==='Returned'?'Return borrowed item':'Add logbook entry','Record the item activity and its quantity.',body,'<button class="btn btn-secondary" data-action="close-modal">Cancel</button><button class="btn btn-primary" type="submit" form="logForm">'+(action==='Returned'?'Record Return':'Record Entry')+'</button>');
+      const updateStock=function(){const item=getItem($('#logItem').value),available=item?availableFor(item.id):0,borrowed=item?outstandingFor(item.id):0,total=item?Number(item.qty):0,used=item?logEntries.filter(function(entry){return entry.itemId===item.id&&entry.action==='Used';}).reduce(function(sum,entry){return sum+Number(entry.qty);},0):0;$('#stockAvailability').innerHTML=item?'<strong>Stock status</strong><div style="margin-top:5px">Available: <b>'+available+' '+esc(item.unit)+'</b> · Currently borrowed: <b>'+borrowed+' '+esc(item.unit)+'</b> · Used / released: '+used+' '+esc(item.unit)+' · Total: '+total+' '+esc(item.unit)+'</div>':'';$('#logQty').max=available||1;if(available>0&&Number($('#logQty').value)>available)$('#logQty').value=available;};
+      const updateForm=function(){const returning=$('#logAction').value==='Returned',using=$('#logAction').value==='Used';$('#logItemPanel').hidden=returning;$('#stockAvailability').hidden=returning;$('#logPersonPanel').hidden=returning;$('#logPurposePanel').hidden=returning;$('#expectedReturnPanel').hidden=using||returning;$('#returnPanel').hidden=!returning;$('#returnPersonPanel').hidden=!returning;$('#returnConditionPanel').hidden=!returning;$('#expectedReturn').required=!using&&!returning;$('#returnedBy').required=returning;$('#returnCondition').required=returning;$('#logQty').required=true;$('#logQtyLabel').textContent=returning?'Return quantity':'Quantity';$('#logPerson').required=!returning;$('#logPurpose').required=!returning;$('#logPersonLabel').textContent=using?'Used by':'Borrowed by';$('#logPurpose').placeholder=using?'e.g., Supplies used for an activity':'e.g., Community activity';if(!returning)updateStock();};
+      $('#logAction').addEventListener('change',updateForm);
+      const renderItemResults=function(){const term=$('#logItemSearch').value.trim().toLowerCase();if(!term){$('#logItemResults').innerHTML='';return;}const matches=items.filter(function(item){return [item.name,item.tracking,item.property,item.category,item.description].join(' ').toLowerCase().includes(term);}).slice(0,8);$('#logItemResults').innerHTML=matches.length?matches.map(function(item){return '<button type="button" class="btn btn-secondary" data-log-item-select="'+item.id+'" style="display:flex;justify-content:space-between;text-align:left"><span><strong>'+esc(item.name)+'</strong><small style="display:block;color:#607387">'+esc(item.category)+' · '+esc(item.tracking)+'</small></span><span style="white-space:nowrap">'+availableFor(item.id)+' available</span></button>';}).join(''):'<div class="empty" style="padding:10px">No matching items found.</div>';};
+      $('#logItemSearch').addEventListener('input',function(){$('#logItem').value='';$('#logSelectedItem').textContent='';updateStock();renderItemResults();});
+      $('#logItemResults').addEventListener('click',function(event){const button=event.target.closest('[data-log-item-select]');if(!button)return;const item=getItem(button.dataset.logItemSelect);if(!item)return;$('#logItem').value=String(item.id);$('#logItemSearch').value=item.name;$('#logSelectedItem').textContent='Selected: '+item.name+' · '+item.tracking;$('#logItemResults').innerHTML='';updateStock();});
+      updateForm();
+      if(selectedEntryId)$('#returnFor').dispatchEvent(new Event('change'));
+    }
+    function showReport(type) {
+      const itemOptions=items.map(function(item){return '<label class="check-row"><input type="checkbox" name="itemIds" value="'+item.id+'" checked> <span>'+esc(item.name)+' · '+esc(item.tracking)+'</span></label>';}).join('');
+      const body='<form id="reportForm" class="form-grid"><div class="form-row"><label for="periodType">Period type</label><select class="field" id="periodType" name="periodType"><option>Weekly</option><option selected>Monthly</option><option>Yearly</option></select></div><div class="form-row"><label for="periodValue">Period value</label><input class="field" id="periodValue" name="periodValue" type="month" value="2026-10"></div><div class="form-row"><label>As-of place</label><input class="field" name="location" value="La Trinidad, Benguet"></div><div class="form-row"><label>Fund cluster</label><input class="field" name="fund" value="General Fund"></div><div class="form-row"><label>Accountable officer</label><input class="field" name="officer" value="Administrator"></div><div class="form-row"><label>Position</label><input class="field" name="position" value="Accountable Officer"></div><div class="form-row full"><label>Barangay / office</label><input class="field" name="office" value="Barangay Puguis"></div><fieldset class="form-row full"><legend>Items to include</legend><div class="check-list">'+itemOptions+'</div></fieldset></form>';
+      openModal('Generate '+esc(type)+' report','Choose a reporting period and header details.',body,'<button class="btn btn-secondary" data-action="close-modal">Cancel</button><button class="btn btn-primary" data-action="make-report" data-report-type="'+type+'">Generate Report</button>',true);
+      $('#periodType').addEventListener('change',function(){const input=$('#periodValue');input.type=this.value==='Yearly'?'number':this.value==='Weekly'?'date':'month';input.value=this.value==='Yearly'?'2026':this.value==='Weekly'?'2026-10-08':'2026-10';});
+    }
+    function showReportPreview(type, periodLabel, header, selectedIds) {
+      const report = reportTypes.find(function (r) { return r.code === type; });
+      const descriptions = { RIS:'Requisition and Issue Slip', PAR:'Property Acknowledgment Receipt', ICS:'Inventory Custodian Slip', RIPE:'Report on Inventory of Property and Equipment' };
+      const columns = type === 'RIPE' ? ['Article','Description','Property / Inventory No.','Qty','Unit Value','Condition'] : type === 'ICS' ? ['Tracking No.','Description','Serial No.','Qty','Unit','Condition'] : type === 'PAR' ? ['Property No.','Description','Qty','Unit Cost','Total Cost','Accountable Person'] : ['Stock / Tracking No.','Unit','Description','Qty Requested','Qty Issued','Remarks'];
+      const picked = items.filter(function(item){return selectedIds.includes(item.id);});
+      const body = '<div class="report-preview"><div class="preview-top"><span>'+esc(header.office)+' · '+esc(header.location)+'</span><span>'+esc(periodLabel)+'</span></div><div class="preview-title">' + type + (type === 'RIPE' ? ' — REPORT ON INVENTORY OF PROPERTY AND EQUIPMENT' : ' — ' + descriptions[type]) + '</div><div class="preview-subtitle">'+esc(header.fund)+' · '+esc(periodLabel)+'</div><table class="preview-table"><thead><tr>' + columns.map(function(c){ return '<th>' + esc(c) + '</th>'; }).join('') + '</tr></thead><tbody>' + picked.map(function(item){ return '<tr>' + columns.map(function(col){ let value = col.includes('Tracking') ? item.tracking : col.includes('Property') ? item.property : col === 'Description' ? item.name : col === 'Qty' || col.includes('Issued') ? item.qty : col.includes('Requested') ? item.qty : col.includes('Unit Cost') ? currency(item.value) : col.includes('Total Cost') ? currency(item.value*item.qty) : col === 'Unit' ? item.unit : col === 'Condition' ? item.condition : col.includes('Person') ? header.officer : col === 'Remarks' ? item.condition : item.category; return '<td>' + esc(value) + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table><div class="preview-signatures"><span>Prepared by<br><strong>'+esc(roleName(currentRole))+'</strong></span><span>Reviewed / certified by<br><strong>'+esc(header.officer)+'</strong></span></div></div>';
+      const actions = '<button class="btn btn-secondary" data-action="close-modal">Close</button><button class="btn btn-secondary" data-action="record-report" data-report-type="' + type + '" data-period="'+esc(periodLabel)+'">Save to History</button><button class="btn btn-secondary" data-action="export-report" data-format="word" data-type="'+type+'">Download Word</button><button class="btn btn-secondary" data-action="export-report" data-format="excel" data-type="'+type+'">Download Excel</button><button class="btn btn-primary" data-action="print-report"><span data-icon="print"></span>Print</button>';
+      openModal(esc(type) + ' report preview',esc(report.name) + ' · '+esc(periodLabel),body,actions,true);
+    }
+    function exportReport(format,type) {
+      const markup=$('.report-preview').outerHTML;
+      const html='<!doctype html><html><head><meta charset="utf-8"><title>'+type+' report</title><style>body{font:12px Arial;margin:28px;color:#1c2939}table{width:100%;border-collapse:collapse;margin-top:16px}th,td{border:1px solid #cbd5e1;padding:7px;text-align:left}th{background:#eef2f7}.preview-title,.preview-subtitle{text-align:center;margin:14px 0}.preview-top,.preview-signatures{display:flex;justify-content:space-between;gap:24px;margin-top:20px}.preview-signatures span{flex:1;border-top:1px solid #667;padding-top:6px;text-align:center}</style></head><body>'+markup+'</body></html>';
+      const mime=format==='word'?'application/msword':'application/vnd.ms-excel';
+      const extension=format==='word'?'doc':'xls';
+      const url=URL.createObjectURL(new Blob([html],{type:mime}));
+      const link=document.createElement('a');link.href=url;link.download=type+'-report.'+extension;link.click();URL.revokeObjectURL(url);
+      showToast('Report downloaded as '+extension.toUpperCase()+'.');
+    }
+    document.addEventListener('click',function(event){
+      const pageTarget = event.target.closest('[data-page]');
+      if (pageTarget) { const page = pageTarget.dataset.page; if (page) { if (pageTarget.dataset.closeModal) closeModal(); go(page); } }
+      const itemTarget = event.target.closest('[data-item]');
+      if (itemTarget) showItem(itemTarget.dataset.item);
+      const editItemTarget = event.target.closest('[data-edit-item]');
+      if (editItemTarget) editItemById(editItemTarget.dataset.editItem);
+      const deleteItemTarget = event.target.closest('[data-delete-item]');
+      if (deleteItemTarget) deleteItemById(deleteItemTarget.dataset.deleteItem);
+      const reportTarget = event.target.closest('[data-report]');
+      if (reportTarget) showReport(reportTarget.dataset.report);
+      const actionTarget = event.target.closest('[data-action]');
+      if (!actionTarget) return;
+      const action = actionTarget.dataset.action;
+      if (action === 'close-modal') closeModal();
+      if (action === 'add-item') itemForm();
+      if (action === 'add-log') logForm();
+      if (action === 'return-entry') logForm('Returned',actionTarget.dataset.entryId);
+      if (action === 'toggle-log-entries') { showAllLogEntries=!showAllLogEntries; renderLogbook(); }
+      if (action === 'physical-count') physicalCountForm();
+      if (action === 'add-category') categoryForm();
+      if (action === 'delete-category') {
+        const name=actionTarget.dataset.category;
+        if(items.some(function(i){return i.category===name;})){showToast('Move items to another category before deleting this one.');}
+        else {categories=categories.filter(function(c){return c!==name;});renderAll();showToast('Category deleted.');}
+      }
+      if (action === 'edit-user') userForm(actionTarget.dataset.user);
+      if (action === 'new-user') userForm('');
+      if (action === 'delete-user') {
+        const id=Number(actionTarget.dataset.user),user=users.find(function(u){return u.id===id;});
+        if(user && user.username!=='admin'){users=users.filter(function(u){return u.id!==id;});renderUsers();showToast('User account deleted.');}
+      }
+      if (action === 'reset-user') {
+        const user=users.find(function(u){return u.id===Number(actionTarget.dataset.user);});
+        if(user)openModal('Reset password','Generate a temporary password for '+esc(user.name)+'.','<div class="detail-cell"><small>Temporary password</small><strong>ST-'+Math.random().toString(36).slice(2,8).toUpperCase()+'</strong></div>','<button class="btn btn-primary" data-action="close-modal">Done</button>');
+      }
+      if (action === 'mark-read') {
+        const notice=notifications.find(function(n){return n.id===Number(actionTarget.dataset.notification);});
+        if(notice)notice.read=true;renderNotifications();
+      }
+      if (action === 'mark-all-read') { notifications.forEach(function(n){n.read=true;});renderNotifications();showToast('All notifications marked as read.'); }
+      if (action === 'confirm-delete-item') {
+        const id=Number(actionTarget.dataset.itemId);items=items.filter(function(i){return i.id!==id;});renderAll();closeModal();showToast('Inventory item deleted.');
+      }
+      if (action === 'refresh') { renderAll(); showToast('Page refreshed.'); }
+      if (action === 'print-history') { showToast('Preparing inventory history to print.'); setTimeout(function(){ window.print(); },300); }
+      if (action === 'print-report') window.print();
+      if (action === 'make-report') {
+        const form=$('#reportForm'),values=new FormData(form),periodType=String(values.get('periodType')),periodValue=String(values.get('periodValue'));
+        const selectedIds=values.getAll('itemIds').map(Number);if(!selectedIds.length){showToast('Select at least one item for this report.');return;}
+        const periodLabel=periodType==='Weekly'?'Weekly · Last 7 days':periodType==='Yearly'?'Yearly · '+periodValue:'Monthly · '+new Date(periodValue+'-01T12:00:00').toLocaleDateString('en-PH',{month:'long',year:'numeric'});
+        const header={office:String(values.get('office')),location:String(values.get('location')),fund:String(values.get('fund')),officer:String(values.get('officer'))};
+        showReportPreview(actionTarget.dataset.reportType,periodLabel,header,selectedIds);
+      }
+      if (action === 'export-report') exportReport(actionTarget.dataset.format,actionTarget.dataset.type);
+      if (action === 'record-report') {
+        const type = actionTarget.dataset.reportType;
+        reportHistory.unshift({type:type,period:actionTarget.dataset.period||'Monthly · October 2026',date:'2026-10-08',generatedBy:roleName(currentRole)});
+        renderReports(); closeModal(); showToast(type + ' added to report history.');
+      }
+    });
+    document.addEventListener('submit',function(event){
+      if (event.target.id === 'itemForm') {
+        event.preventDefault(); const form = new FormData(event.target);
+        const name = String(form.get('name') || '').trim(); if (!name) return;
+        const existingId=Number(form.get('id'))||0;
+        const id=existingId||Math.max.apply(null,items.map(function(i){return i.id;}))+1;
+        const itemData={id:id,name:name,description:String(form.get('description')||(existingId?getItem(id).description:'Inventory item')),property:String(form.get('property')||('ST-2026-'+String(id).padStart(3,'0'))),tracking:existingId?(getItem(id).tracking):'TRK-NEW-'+String(id).padStart(3,'0'),serial:String(form.get('serial')||'—'),category:String(form.get('category')),condition:String(form.get('condition')),qty:Number(form.get('balance')!==''?form.get('balance'):form.get('onHand'))||1,unit:String(form.get('unit')||'unit'),value:Number(form.get('value'))||0,acquired:String(form.get('acquired')||'2026-10-08'),person:String(form.get('person')||'Inventory Custodian'),position:String(form.get('position')||'Inventory Custodian'),source:String(form.get('source')||'Other'),coverage:String(form.get('coverage')||'Barangay-wide'),donor:String(form.get('donor')||''),donorOffice:String(form.get('donorOffice')||''),balance:Number(form.get('balance')||0),onHand:Number(form.get('onHand')||0),shortage:Number(form.get('shortage')||0),shortageValue:Number(form.get('shortageValue')||0),remarks:String(form.get('remarks')||''),consumable:String(form.get('consumable'))==='true',recorded:existingId?getItem(id).recorded:'2026-10-08'};
+        if(existingId){Object.assign(getItem(id),itemData);showToast('Inventory item updated.');}
+        else {items.unshift(itemData);if(!categories.includes(itemData.category))categories.push(itemData.category);showToast('Inventory item added.');}
+        renderAll(); closeModal(); go('inventory');
+      }
+      if (event.target.id === 'logForm') {
+        event.preventDefault(); const form = new FormData(event.target);
+        const entry = {id:Math.max.apply(null,logEntries.map(function(e){return e.id;}))+1,itemId:Number(form.get('itemId')),action:String(form.get('action')),qty:Number(form.get('qty'))||1,borrower:String(form.get('borrower')||''),returnedBy:String(form.get('returnedBy')||'').trim(),purpose:String(form.get('purpose')||''),date:todayISO(),expectedReturn:String(form.get('expectedReturn')||''),returned:form.get('action')==='Returned'?todayISO():'',returnFor:Number(form.get('returnFor'))||0,condition:form.get('action')==='Returned'?String(form.get('condition')):'',status:'',recorder:roleName(currentRole)};
+        if (entry.action === 'Returned') {
+          const original=logEntries.find(function(e){return e.id===entry.returnFor&&e.action==='Borrowed';});
+          if(!original){showToast('Use the Return button beside the item you are returning.');return;}
+          if(!entry.returnedBy){showToast('Enter the name of the person returning the item.');return;}
+          if(entry.qty>outstandingForEntry(original.id)){showToast('Return quantity exceeds the outstanding quantity on this borrowing record.');return;}
+          entry.itemId=original.itemId;entry.borrower=original.borrower;
+          const returnedItem=getItem(original.itemId);if(returnedItem)returnedItem.condition=entry.condition;
+        } else if(entry.qty>availableFor(entry.itemId)){showToast('Only '+availableFor(entry.itemId)+' unit(s) are available for this action.');return;}
+        logEntries.unshift(entry);
+        notifications.unshift({id:Math.max.apply(null,notifications.map(function(n){return n.id;}))+1,itemId:entry.itemId,action:entry.action,details:entry.qty+' unit(s) '+entry.action.toLowerCase()+(entry.action==='Returned'?' · condition: '+entry.condition+' · returned by '+entry.returnedBy:' · '+entry.purpose),date:entry.date,read:false});
+        showAllLogEntries=false;
+        renderAll(); closeModal(); go('logbook'); showToast('Logbook entry recorded.');
+      }
+      if(event.target.id==='countForm'){
+        event.preventDefault();const form=new FormData(event.target),item=getItem(form.get('itemId'));
+        if(item){item.onHand=Number(form.get('onHand'))||0;item.condition=String(form.get('condition'));item.shortage=item.onHand-Number(item.balance||item.qty);item.shortageValue=item.shortage*Number(item.value);item.lastInventory='2026-10-08';renderAll();closeModal();showToast('Physical count saved.');}
+      }
+      if(event.target.id==='categoryForm'){
+        event.preventDefault();const form=new FormData(event.target),name=String(form.get('name')||'').trim();
+        if(name&&!categories.some(function(c){return c.toLowerCase()===name.toLowerCase();})){categories.push(name);renderAll();closeModal();showToast('Category added.');}
+      }
+      if(event.target.id==='userForm'){
+        event.preventDefault();const form=new FormData(event.target),id=Number(form.get('id'))||0;
+        const data={name:String(form.get('name')),username:String(form.get('username')),role:String(form.get('role'))};
+        if(id){Object.assign(users.find(function(u){return u.id===id;}),data);showToast('User account updated.');}
+        else {users.push({id:Math.max.apply(null,users.map(function(u){return u.id;}))+1,name:data.name,username:data.username,role:data.role,date:'2026-10-08'});showToast('User account added.');}
+        renderAll();closeModal();
+      }
+      if(event.target.id==='profileForm'){
+        event.preventDefault();$('#currentUserName').textContent=String(new FormData(event.target).get('name')||roleName(currentRole));showToast('Profile updated.');
+      }
+      if(event.target.id==='passwordForm'){
+        event.preventDefault();if($('#newPassword').value!==$('#confirmPassword').value){showToast('The new passwords do not match.');return;}event.target.reset();showToast('Password updated.');
+      }
+    });
+    $('#inventorySearch').addEventListener('input',renderInventory);
+    $('#conditionFilter').addEventListener('change',renderInventory);
+    $('#categoryFilter').addEventListener('change',renderInventory);
+    $('#acquisitionFilter').addEventListener('change',renderInventory);
+    $('#inventorySort').addEventListener('change',renderInventory);
+    $('#inventoryDirection').addEventListener('change',renderInventory);
+    $('#categorySort').addEventListener('change',renderCategoryPage);
+    $('#categoryDirection').addEventListener('change',renderCategoryPage);
+    $('#clearInventoryFilters').addEventListener('click',function(){ $('#inventorySearch').value='';$('#conditionFilter').value='';$('#categoryFilter').value='';$('#acquisitionFilter').value='';renderInventory(); });
+    $('#logSearch').addEventListener('input',renderLogbook);
+    $('#actionFilter').addEventListener('change',renderLogbook);
+    $('#logFrom').addEventListener('change',renderLogbook);
+    $('#logTo').addEventListener('change',renderLogbook);
+    $('#logSort').addEventListener('change',renderLogbook);
+    $('#logDirection').addEventListener('change',renderLogbook);
+    $('#clearLogFilters').addEventListener('click',function(){ $('#logSearch').value='';$('#actionFilter').value='';$('#logFrom').value='';$('#logTo').value='';renderLogbook(); });
+    $('#applyHistory').addEventListener('click',renderHistory);
+    $('#historySort').addEventListener('change',renderHistory);
+    $('#historyDirection').addEventListener('change',renderHistory);
+    $('#clearHistory').addEventListener('click',function(){ $('#historyPeriod').value='all';$('#historyMonth').value='2026-10';renderHistory(); });
+    $('#historyPeriod').addEventListener('change',function(){ $('#historyMonth').disabled = this.value === 'all' || this.value === 'weekly'; });
+    $('#notificationFilter').addEventListener('change',renderNotifications);
+    $('#notificationSort').addEventListener('change',renderNotifications);
+    $('#auditFilter').addEventListener('change',renderActivity);
+    $('#auditSort').addEventListener('change',renderActivity);
+    $('#auditDirection').addEventListener('change',renderActivity);
+    $('#applyAudit').addEventListener('click',renderActivity);
+    $('#reportTypeFilter').addEventListener('change',renderReports);
+    $('#reportSort').addEventListener('change',renderReports);
+    $('#reportDirection').addEventListener('change',renderReports);
+    $('#clearReportFilters').addEventListener('click',function(){$('#reportTypeFilter').value='';$('#reportSort').value='date';$('#reportDirection').value='DESC';renderReports();});
+    $('#roleSelect').addEventListener('change',function(){
+      currentRole = this.value;
+      renderAll();
+      $('#profileRole').value=roleName(currentRole);
+      $('#profileName').value=roleName(currentRole);
+      $('#profileUsername').value=currentRole;
+      const activePage=$('.view.active').id.replace('view-','');
+      if ((!canManage(currentRole) && ['categories','users','settings'].includes(activePage)) || (!canOversight(currentRole) && ['audit','notifications'].includes(activePage))) go('dashboard');
+      showToast('Viewing StockTrack as ' + roleName(currentRole) + '.');
+    });
+    $('#settingsForm').addEventListener('submit',function(event){event.preventDefault();showToast('Report settings updated.');});
+    $('#globalSearch').addEventListener('keydown',function(event){ if(event.key==='Enter'){ $('#inventorySearch').value=this.value;go('inventory');renderInventory(); } });
+    $('#modal').addEventListener('click',function(event){ if(event.target.id==='modal')closeModal(); });
+    document.addEventListener('keydown',function(event){ if(event.key==='Escape')closeModal(); });
+    renderAll();
+  </script>
+</body>
+</html>
