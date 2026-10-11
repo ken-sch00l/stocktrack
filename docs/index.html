@@ -66,7 +66,7 @@
     .page-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 22px; }
     .eyebrow { margin-bottom: 6px; color: var(--blue); font-size: 10px; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
     h1 { margin: 0; color: var(--ink); font-size: clamp(23px, 2.5vw, 29px); letter-spacing: -.7px; line-height: 1.15; }
-    .page-desc { margin: 7px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .page-desc { margin: 7px 0 0; color: #55667c; font-size: 14px; line-height: 1.55; }
     .btn { display: inline-flex; min-height: 38px; align-items: center; justify-content: center; gap: 8px; padding: 8px 13px; border: 1px solid transparent; border-radius: 8px; font-size: 12px; font-weight: 700; transition: .15s ease; white-space: nowrap; }
     .btn svg { width: 15px; height: 15px; }
     .btn-primary { background: var(--blue); color: #fff; box-shadow: 0 3px 8px #1769aa25; }
@@ -74,15 +74,13 @@
     .btn-secondary { border-color: var(--line); background: #fff; color: var(--ink); }
     .btn-secondary:hover { background: #f4f7fb; }
     .btn-quiet { background: transparent; color: var(--blue); }
-    .btn-small { min-height: 30px; padding: 5px 9px; font-size: 11px; }
+    .btn-small { min-height: 31px; padding: 6px 10px; font-size: 12px; }
     .btn-row-view { border-color: #c6daf2; background: #edf5ff; color: #1558a6; }
     .btn-row-view:hover { background: #dcecff; }
-    .btn-row-edit, .btn-row-reset { border-color: #f1d69a; background: #fff7e5; color: #98600a; }
-    .btn-row-edit:hover, .btn-row-reset:hover { background: #ffefc8; }
+    .btn-row-edit, .btn-row-reset, .btn-row-read { border-color: #d9e2ec; background: #f7f9fc; color: #40566f; }
+    .btn-row-edit:hover, .btn-row-reset:hover, .btn-row-read:hover { background: #edf3f9; }
     .btn-row-delete { border-color: #f0c5c8; background: #fff0f0; color: #b42f3b; }
     .btn-row-delete:hover { background: #ffe0e2; }
-    .btn-row-read { border-color: #bfe5d0; background: #eaf8f0; color: #167548; }
-    .btn-row-read:hover { background: #d8f2e3; }
     .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin: 0 0 20px; }
     .stat { position: relative; display: flex; min-height: 112px; align-items: flex-start; gap: 13px; padding: 17px; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
     .stat:before { position: absolute; top: 0; bottom: 0; left: 0; width: 3px; background: var(--stat-color, var(--blue)); content: ""; }
@@ -94,12 +92,13 @@
     .grid-two { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(260px, .8fr); gap: 16px; align-items: stretch; margin-bottom: 17px; }
     .card { min-width: 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
     .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px; border-bottom: 1px solid #edf1f5; }
-    .card-title { margin: 0; color: var(--ink); font-size: 13px; font-weight: 750; }
-    .card-subtitle { margin-top: 4px; color: var(--muted); font-size: 11px; }
+    .card-title { margin: 0; color: var(--ink); font-size: 14px; font-weight: 780; letter-spacing: -.2px; }
+    .card-subtitle { margin-top: 4px; color: #62758d; font-size: 12px; }
     .card-body { padding: 17px 18px; }
-    .table-wrap { max-height: min(68vh, 680px); overflow: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: 11px; text-align: left; }
-    th { position: sticky; top: 0; z-index: 3; padding: 10px 13px; border-bottom: 1px solid #dbe5f1; background: var(--navy); color: #fff; font-size: 9px; font-weight: 800; letter-spacing: .055em; text-transform: uppercase; white-space: nowrap; }
+    .table-wrap { position: relative; max-height: min(68vh, 680px); overflow: auto; }
+    .table-wrap::after { position: absolute; right: 10px; bottom: 8px; z-index: 2; display: none; padding: 4px 8px; border-radius: 999px; background: #123b6dd9; color: #fff; font-size: 10px; letter-spacing: .02em; content: "Scroll horizontally →"; pointer-events: none; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
+    th { position: sticky; top: 0; z-index: 3; padding: 11px 14px; border-bottom: 1px solid #dbe5f1; background: var(--navy); color: #fff; font-size: 10px; font-weight: 800; letter-spacing: .055em; text-transform: uppercase; white-space: nowrap; }
     .inventory-table thead tr:first-child th { padding-top: 10px; padding-bottom: 7px; }
     .inventory-table thead tr:last-child th { top: 28px; padding-top: 6px; padding-bottom: 9px; }
     .inventory-table thead .shortage-group { text-align: center; }
@@ -109,14 +108,14 @@
     .inventory-table th:nth-child(15), .inventory-table tbody td:nth-child(15) { width: 110px; max-width: 110px; }
     .inventory-table .available-cell { font-weight: 800; color: var(--ink); }
     .inventory-table .variance-zero { color: #718096; }
-    td { padding: 11px 13px; border-bottom: 1px solid #edf1f5; color: #34465f; vertical-align: middle; }
+    td { padding: 12px 14px; border-bottom: 1px solid #edf1f5; color: #2e425a; vertical-align: middle; }
     tr:last-child td { border-bottom: 0; }
     tbody tr:nth-child(even) { background: #f7faff; }
     tbody tr:hover { background: #edf5fc; }
     .item-main { color: var(--ink); font-weight: 750; }
-    .item-sub { margin-top: 3px; color: #8794a6; font-size: 10px; }
+    .item-sub { margin-top: 3px; color: #70839a; font-size: 11px; }
     .source-line { margin-top: 5px; }
-    .source-chip { display: inline-flex; align-items: center; padding: 3px 7px; border-radius: 999px; font-size: 9px; font-weight: 750; }
+    .source-chip { display: inline-flex; align-items: center; padding: 3px 7px; border-radius: 999px; font-size: 10px; font-weight: 750; }
     .source-chip.purchased { background: #e7f6ee; color: #18865b; }
     .source-chip.donated { background: #e9f2fb; color: #1769aa; }
     .source-chip.other { background: #eef1f5; color: #68788b; }
@@ -137,8 +136,8 @@
     .stock-metric.consumed .stock-metric-value { color: #6849ad; }
     .stock-metric.total .stock-metric-value { color: #145a93; }
     .stock-metric-unit { margin-left: 4px; color: #607387; font-size: 10px; font-weight: 600; }
-    .code { color: #536983; font-family: Consolas, "Courier New", monospace; font-size: 10px; }
-    .badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 999px; font-size: 9px; font-weight: 750; white-space: nowrap; }
+    .code { color: #4d647f; font-family: Consolas, "Courier New", monospace; font-size: 11px; }
+    .badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 999px; font-size: 10px; font-weight: 750; white-space: nowrap; }
     .badge:before { width: 5px; height: 5px; border-radius: 50%; background: currentColor; content: ""; }
     .badge.green { background: var(--green-bg); color: var(--green); }
     .badge.amber { background: var(--amber-bg); color: var(--amber); }
@@ -165,8 +164,8 @@
     .quick-icon svg { width: 17px; height: 17px; }
     .quick-link strong { display: block; font-size: 11px; }
     .quick-link small { display: block; margin-top: 3px; color: var(--muted); font-size: 9px; }
-    .toolbar { display: flex; align-items: center; gap: 9px; margin-bottom: 13px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: white; box-shadow: var(--shadow); }
-    .field { width: 100%; min-height: 37px; padding: 8px 10px; border: 1px solid #dce4ed; border-radius: 7px; outline: 0; background: #fff; color: var(--ink); font-size: 11px; }
+    .toolbar { display: flex; align-items: center; gap: 11px; margin-bottom: 15px; padding: 13px; border: 1px solid var(--line); border-radius: 10px; background: white; box-shadow: var(--shadow); }
+    .field { width: 100%; min-height: 40px; padding: 9px 11px; border: 1px solid #dce4ed; border-radius: 8px; outline: 0; background: #fff; color: var(--ink); font-size: 12px; }
     .field:focus { border-color: #72a9d5; box-shadow: 0 0 0 3px #1769aa17; }
     :where(button, a, input, select, textarea):focus-visible { outline: 3px solid #e0a62e; outline-offset: 2px; }
     .search-field { position: relative; min-width: 200px; flex: 1; }
@@ -175,13 +174,13 @@
     .filter-select { width: auto; min-width: 145px; }
     .inventory-summary { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 14px; }
     .mini-stat { padding: 13px 15px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
-    .mini-stat-label { color: var(--muted); font-size: 10px; }
+    .mini-stat-label { color: var(--muted); font-size: 11px; }
     .mini-stat-number { margin-top: 4px; color: var(--ink); font-size: 19px; font-weight: 760; }
     .table-card { overflow: hidden; }
     .table-card .card-head { padding: 14px 16px; }
-    .table-foot { display: flex; justify-content: space-between; gap: 12px; padding: 11px 16px; border-top: 1px solid #edf1f5; color: var(--muted); font-size: 10px; }
+    .table-foot { display: flex; justify-content: space-between; gap: 12px; padding: 11px 16px; border-top: 1px solid #edf1f5; color: var(--muted); font-size: 11px; }
     .inventory-pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 16px; border-top: 1px solid #edf1f5; }
-    .pagination-summary { color: var(--muted); font-size: 10px; }
+    .pagination-summary { color: var(--muted); font-size: 11px; }
     .pagination-controls { display: flex; align-items: center; gap: 5px; }
     .pagination-controls .btn { min-width: 34px; min-height: 32px; padding: 5px 9px; }
     .pagination-controls .btn[disabled] { opacity: .45; cursor: not-allowed; }
@@ -215,15 +214,28 @@
     .close-btn { display: grid; width: 30px; height: 30px; place-items: center; border: 0; border-radius: 7px; background: #f0f3f7; color: #52647a; font-size: 18px; }
     .modal-body { padding: 18px 20px; }
     .modal-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 13px 20px; border-top: 1px solid #edf1f5; }
-    .form-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
-    .form-row label { display: block; margin-bottom: 6px; color: #52647a; font-size: 10px; font-weight: 750; }
+    .form-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
+    .form-row label { display: block; margin-bottom: 6px; color: #42586f; font-size: 11px; font-weight: 760; }
     .form-row > label:has(+ input:required)::after, .form-row > label:has(+ select:required)::after { content: " *"; color: var(--red); }
-    .form-grid:has([required])::before { grid-column: 1 / -1; color: var(--muted); content: "* Required fields"; font-size: 10px; }
+    .form-grid:has([required])::before { grid-column: 1 / -1; color: var(--muted); content: "* Required fields"; font-size: 11px; }
     .form-row.full { grid-column: 1 / -1; }
     fieldset.form-row { min-width: 0; margin: 0; padding: 11px; border: 1px solid #dce3eb; border-radius: 8px; }
-    fieldset.form-row legend { padding: 0 5px; color: #52647a; font-size: 10px; font-weight: 750; }
+    fieldset.form-row legend { padding: 0 5px; color: #52647a; font-size: 11px; font-weight: 750; }
+    .form-section { grid-column: 1 / -1; padding: 12px 13px; border: 1px solid #e3eaf2; border-radius: 10px; background: #f9fbfe; }
+    .form-section-title { margin: 0; color: #304863; font-size: 13px; font-weight: 780; }
+    .form-section-copy { margin-top: 4px; color: #607387; font-size: 11px; line-height: 1.45; }
+    .form-advanced { grid-column: 1 / -1; border: 1px solid #dfe6ef; border-radius: 10px; background: #fcfdff; }
+    .form-advanced summary { padding: 10px 12px; color: #3f566f; font-size: 12px; font-weight: 700; cursor: pointer; user-select: none; }
+    .form-advanced .form-grid { padding: 0 12px 12px; }
+    .form-advanced[open] summary { border-bottom: 1px solid #e5ecf4; margin-bottom: 12px; }
     .check-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; max-height: 170px; overflow: auto; }
-    .check-row { display: flex !important; align-items: center; gap: 7px; margin: 0 !important; padding: 8px; border: 1px solid #edf1f5; border-radius: 7px; color: var(--ink) !important; font-size: 10px !important; font-weight: 550 !important; }
+    .check-row { display: flex !important; align-items: center; gap: 7px; margin: 0 !important; padding: 8px; border: 1px solid #edf1f5; border-radius: 7px; color: var(--ink) !important; font-size: 11px !important; font-weight: 550 !important; }
+    .row-actions { display: flex; align-items: center; gap: 6px; justify-content: flex-start; flex-wrap: wrap; }
+    .row-menu { position: relative; }
+    .row-menu summary { display: inline-flex; align-items: center; justify-content: center; min-height: 31px; padding: 6px 10px; border: 1px solid #d9e2ec; border-radius: 8px; background: #f8fafd; color: #3d536d; font-size: 12px; font-weight: 700; list-style: none; cursor: pointer; }
+    .row-menu summary::-webkit-details-marker { display: none; }
+    .row-menu[open] summary { background: #eef3f8; }
+    .row-menu-panel { position: absolute; right: 0; z-index: 8; display: grid; gap: 6px; min-width: 130px; margin-top: 6px; padding: 8px; border: 1px solid #dce6f0; border-radius: 9px; background: #fff; box-shadow: 0 8px 20px #102a4320; }
     .check-row input { accent-color: var(--green); }
     .detail-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px; }
     .detail-cell { padding: 11px; border: 1px solid #edf1f5; border-radius: 8px; background: #fafbfd; }
@@ -276,6 +288,7 @@
       .stats { grid-template-columns: repeat(2,minmax(0,1fr)); }
       .report-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
       .grid-two { grid-template-columns: 1fr; }
+      .table-wrap::after { display: inline-flex; }
     }
     @media (max-width: 760px) {
       .topbar { height: 58px; padding: 0 14px; gap: 10px; }
@@ -303,6 +316,7 @@
       .report-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
       .form-grid { grid-template-columns: 1fr; }
       .form-row.full { grid-column: auto; }
+      .row-menu-panel { left: 0; right: auto; min-width: 150px; }
     }
     @media (max-width: 460px) {
       .stats { gap: 8px; }
@@ -645,7 +659,8 @@
       $('#userCount').textContent = users.length + ' accounts';
       $('#userRows').innerHTML = users.map(function(user){
         const role = roleName(user.role);
-        const actions = '<button class="btn btn-row-edit btn-small" data-action="edit-user" data-user="' + user.id + '">Edit</button> <button class="btn btn-row-reset btn-small" data-action="reset-user" data-user="' + user.id + '">Reset password</button>' + (user.role !== 'admin' ? ' <button class="btn btn-row-delete btn-small" data-action="delete-user" data-user="' + user.id + '">Delete</button>' : '');
+        const secondaryActions = '<button class="btn btn-row-reset btn-small" data-action="reset-user" data-user="' + user.id + '">Reset password</button>' + (user.role !== 'admin' ? '<button class="btn btn-row-delete btn-small" data-action="delete-user" data-user="' + user.id + '">Delete</button>' : '');
+        const actions = '<div class="row-actions"><button class="btn btn-row-edit btn-small" data-action="edit-user" data-user="' + user.id + '">Edit</button><details class="row-menu"><summary>More</summary><div class="row-menu-panel">' + secondaryActions + '</div></details></div>';
         return '<tr><td><div class="item-main">' + esc(user.name) + '</div></td><td class="code">' + esc(user.username) + '</td><td>' + esc(role) + '</td><td>' + dateLabel(user.date) + '</td><td>' + actions + '</td></tr>';
       }).join('');
     }
@@ -735,7 +750,8 @@
       $('#inventoryResultCount').textContent = filtered.length;
       $('#physicalCountButton').hidden = !canEditRecords(currentRole);
       $('#inventoryRows').innerHTML = filtered.length ? pageItems.map(function (item) {
-        const actions = '<button class="btn btn-row-view btn-small" data-item="' + item.id + '">View</button>' + (canEditRecords(currentRole) ? ' <button class="btn btn-row-edit btn-small" data-edit-item="' + item.id + '">Edit</button>' : '') + (canManage(currentRole) ? ' <button class="btn btn-row-delete btn-small" data-delete-item="' + item.id + '">Delete</button>' : '');
+        const menuActions = (canEditRecords(currentRole) ? '<button class="btn btn-row-edit btn-small" data-edit-item="' + item.id + '">Edit</button>' : '') + (canManage(currentRole) ? '<button class="btn btn-row-delete btn-small" data-delete-item="' + item.id + '">Delete</button>' : '');
+        const actions = '<div class="row-actions"><button class="btn btn-row-view btn-small" data-item="' + item.id + '">View</button>' + (menuActions ? '<details class="row-menu"><summary>More</summary><div class="row-menu-panel">' + menuActions + '</div></details>' : '') + '</div>';
         const available = availableFor(item.id);
         return '<tr><td class="code">' + esc(item.tracking) + '</td><td>' + esc(item.article||'—') + '</td><td>' + esc(item.category) + '</td><td class="description-cell"><div class="item-main">' + esc(item.name) + '</div><div class="item-sub">' + esc(item.description) + '</div><div class="source-line">' + acquisitionChip(item.source) + ' ' + consumableChip(item) + '</div></td><td class="code">' + esc(item.property) + '</td><td>' + dateLabel(item.acquired) + '</td><td>' + esc(item.unit) + '</td><td>' + currency(item.value) + '</td><td>' + Number(item.balance != null ? item.balance : item.qty) + '</td><td>' + Number(item.onHand != null ? item.onHand : item.qty) + '</td><td><strong>' + available + '</strong></td><td>' + Number(item.shortage || 0) + '</td><td>' + currency(item.shortageValue || 0) + '</td><td>' + (item.remarks ? esc(item.remarks) : '<span style="color:#8794a6">—</span>') + '</td><td>' + conditionBadge(item.condition) + '</td><td style="white-space:nowrap">' + actions + '</td></tr>';
       }).join('') : '<tr><td colspan="16"><div class="empty">No items match these filters.</div></td></tr>';
@@ -863,7 +879,37 @@
     }
     function itemForm() {
       const catOptions = categories.map(function(c){return '<option>'+esc(c)+'</option>';}).join('');
-      const body = '<form id="itemForm" class="form-grid"><input type="hidden" name="id" value=""><div class="form-row"><label for="newArticle">Article</label><select class="field" id="newArticle" name="article" required><option value="PAR">PAR · Property and Equipment covered by PAR</option><option value="ICS">ICS · Property and Equipment covered by ICS</option><option value="RIS">RIS · Requisition and Issue Slip</option></select></div><div class="form-row"><label for="newCategory">Category</label><select class="field" id="newCategory" name="category" required>'+catOptions+'</select></div><div class="form-row"><label for="newProperty">Property / ICS no.</label><input class="field" id="newProperty" name="property" readonly></div><div class="form-row"><label for="newItemName">Description / item name</label><input class="field" id="newItemName" name="name" required placeholder="e.g., Office chair"></div><div class="form-row"><label>Coverage type</label><select class="field" name="coverage" required><option>Barangay-wide</option><option>Office-specific</option></select></div><div class="form-row"><label>Acquisition type</label><select class="field" name="source" id="itemSource" required><option>Purchased</option><option>Donated</option><option>Other</option></select></div><div class="form-row"><label>Date acquired</label><input class="field" name="acquired" type="date" value="2026-10-08" required></div><div class="form-row"><label>Donor name / organization</label><input class="field" name="donor" placeholder="Required for donated items"></div><div class="form-row"><label>Donor office / department</label><input class="field" name="donorOffice"></div><div class="form-row"><label>Unit of measure</label><input class="field" name="unit" value="unit" required></div><div class="form-row"><label>Unit value</label><input class="field" name="value" type="number" min="0" step="0.01" value="0" required></div><div class="form-row"><label>Balance per card</label><input class="field" name="balance" type="number" min="0" value="1" required></div><div class="form-row"><label>On hand</label><input class="field" name="onHand" type="number" min="0" value="1" required></div><div class="form-row"><label>Shortage / overage quantity</label><input class="field" name="shortage" type="number" value="0" required></div><div class="form-row"><label>Shortage / overage value</label><input class="field" name="shortageValue" type="number" step="0.01" value="0" required></div><div class="form-row"><label>Serial no.</label><input class="field" name="serial"></div><div class="form-row"><label>Condition</label><select class="field" name="condition" required><option>Serviceable</option><option>Unserviceable</option></select></div><div class="form-row"><label>Consumable status</label><select class="field" name="consumable" required><option value="false">Non-consumable</option><option value="true">Consumable</option></select></div><div class="form-row"><label>Person in charge</label><input class="field" name="person" placeholder="e.g., Avery Santos" required></div><div class="form-row"><label>Position</label><input class="field" name="position" placeholder="e.g., Barangay Treasurer" required></div><div class="form-row"><label>Last inventory</label><input class="field" name="lastInventory" type="date"></div><div class="form-row full"><label>Remarks</label><input class="field" name="remarks"></div></form>';
+      const body = `<form id="itemForm" class="form-grid">
+        <input type="hidden" name="id" value="">
+        <div class="form-section"><h3 class="form-section-title">Basic item details</h3><p class="form-section-copy">Start with the required fields. Expand advanced fields only when needed.</p></div>
+        <div class="form-row"><label for="newItemName">Description / item name</label><input class="field" id="newItemName" name="name" required placeholder="e.g., Office chair"></div>
+        <div class="form-row"><label for="newCategory">Category</label><select class="field" id="newCategory" name="category" required>${catOptions}</select></div>
+        <div class="form-row"><label for="newArticle">Article</label><select class="field" id="newArticle" name="article" required><option value="PAR">PAR · Property and Equipment covered by PAR</option><option value="ICS">ICS · Property and Equipment covered by ICS</option><option value="RIS">RIS · Requisition and Issue Slip</option></select></div>
+        <div class="form-row"><label for="newProperty">Property / ICS no.</label><input class="field" id="newProperty" name="property" readonly></div>
+        <div class="form-row"><label>Acquisition type</label><select class="field" name="source" id="itemSource" required><option>Purchased</option><option>Donated</option><option>Other</option></select></div>
+        <div class="form-row"><label>Date acquired</label><input class="field" name="acquired" type="date" value="2026-10-08" required></div>
+        <div class="form-row"><label>Unit of measure</label><input class="field" name="unit" value="unit" required></div>
+        <div class="form-row"><label>Unit value</label><input class="field" name="value" type="number" min="0" step="0.01" value="0" required></div>
+        <div class="form-row"><label>Balance per card</label><input class="field" name="balance" type="number" min="0" value="1" required></div>
+        <div class="form-row"><label>On hand</label><input class="field" name="onHand" type="number" min="0" value="1" required></div>
+        <div class="form-row"><label>Condition</label><select class="field" name="condition" required><option>Serviceable</option><option>Unserviceable</option></select></div>
+        <div class="form-row"><label>Consumable status</label><select class="field" name="consumable" required><option value="false">Non-consumable</option><option value="true">Consumable</option></select></div>
+        <div class="form-row"><label>Person in charge</label><input class="field" name="person" placeholder="e.g., Avery Santos" required></div>
+        <div class="form-row"><label>Position</label><input class="field" name="position" placeholder="e.g., Barangay Treasurer" required></div>
+        <details class="form-advanced">
+          <summary>Advanced and optional fields</summary>
+          <div class="form-grid">
+            <div class="form-row"><label>Coverage type</label><select class="field" name="coverage" required><option>Barangay-wide</option><option>Office-specific</option></select></div>
+            <div class="form-row"><label>Serial no.</label><input class="field" name="serial"></div>
+            <div class="form-row"><label>Donor name / organization</label><input class="field" name="donor" placeholder="Required for donated items"></div>
+            <div class="form-row"><label>Donor office / department</label><input class="field" name="donorOffice"></div>
+            <div class="form-row"><label>Shortage / overage quantity</label><input class="field" name="shortage" type="number" value="0" required></div>
+            <div class="form-row"><label>Shortage / overage value</label><input class="field" name="shortageValue" type="number" step="0.01" value="0" required></div>
+            <div class="form-row"><label>Last inventory</label><input class="field" name="lastInventory" type="date"></div>
+            <div class="form-row full"><label>Remarks</label><input class="field" name="remarks"></div>
+          </div>
+        </details>
+      </form>`;
       openModal('Add inventory item','Enter the item details below.',body,'<button class="btn btn-secondary" data-action="close-modal">Cancel</button><button class="btn btn-primary" type="submit" form="itemForm">Add Item</button>',true);
       bindPropertyNumber($('#itemForm'));
     }
